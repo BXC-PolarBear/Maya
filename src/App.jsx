@@ -29,6 +29,23 @@ const earthFamilies = ["極性家族 (Polar)", "基本家族 (Cardinal)", "核�
 const castles = ["紅色時間城堡", "白色時間城堡", "藍色時間城堡", "黃色時間城堡", "綠色時間城堡"];
 const castleColors = ["#d32f2f", "#757575", "#1976d2", "#fbc02d", "#388e3c"]; 
 
+// 🚀 完整 13 月亮曆 PSI 查表大字典 (364天)
+const advancedMatrixData = {
+  "1-1": { psi: 1 }, "1-2": { psi: 1 }, "1-3": { psi: 1 }, "1-4": { psi: 20 }, "1-5": { psi: 20 }, "1-6": { psi: 20 }, "1-7": { psi: 2 }, "1-8": { psi: 3 }, "1-9": { psi: 4 }, "1-10": { psi: 5 }, "1-11": { psi: 6 }, "1-12": { psi: 7 }, "1-13": { psi: 8 }, "1-14": { psi: 9 }, "1-15": { psi: 10 }, "1-16": { psi: 11 }, "1-17": { psi: 12 }, "1-18": { psi: 13 }, "1-19": { psi: 14 }, "1-20": { psi: 15 }, "1-21": { psi: 16 }, "1-22": { psi: 17 }, "1-23": { psi: 241 }, "1-24": { psi: 241 }, "1-25": { psi: 241 }, "1-26": { psi: 260 }, "1-27": { psi: 260 }, "1-28": { psi: 260 },
+  "2-1": { psi: 22 }, "2-2": { psi: 22 }, "2-3": { psi: 22 }, "2-4": { psi: 39 }, "2-5": { psi: 39 }, "2-6": { psi: 39 }, "2-7": { psi: 38 }, "2-8": { psi: 19 }, "2-9": { psi: 21 }, "2-10": { psi: 23 }, "2-11": { psi: 24 }, "2-12": { psi: 25 }, "2-13": { psi: 26 }, "2-14": { psi: 27 }, "2-15": { psi: 28 }, "2-16": { psi: 29 }, "2-17": { psi: 30 }, "2-18": { psi: 31 }, "2-19": { psi: 32 }, "2-20": { psi: 33 }, "2-21": { psi: 34 }, "2-22": { psi: 35 }, "2-23": { psi: 222 }, "2-24": { psi: 222 }, "2-25": { psi: 222 }, "2-26": { psi: 239 }, "2-27": { psi: 239 }, "2-28": { psi: 239 },
+  "3-1": { psi: 43 }, "3-2": { psi: 43 }, "3-3": { psi: 43 }, "3-4": { psi: 58 }, "3-5": { psi: 58 }, "3-6": { psi: 58 }, "3-7": { psi: 36 }, "3-8": { psi: 18 }, "3-9": { psi: 37 }, "3-10": { psi: 40 }, "3-11": { psi: 41 }, "3-12": { psi: 42 }, "3-13": { psi: 44 }, "3-14": { psi: 45 }, "3-15": { psi: 46 }, "3-16": { psi: 47 }, "3-17": { psi: 48 }, "3-18": { psi: 49 }, "3-19": { psi: 52 }, "3-20": { psi: 53 }, "3-21": { psi: 54 }, "3-22": { psi: 55 }, "3-23": { psi: 203 }, "3-24": { psi: 203 }, "3-25": { psi: 203 }, "3-26": { psi: 218 }, "3-27": { psi: 218 }, "3-28": { psi: 218 },
+  "4-1": { psi: 64 }, "4-2": { psi: 64 }, "4-3": { psi: 64 }, "4-4": { psi: 96 }, "4-5": { psi: 96 }, "4-6": { psi: 96 }, "4-7": { psi: 56 }, "4-8": { psi: 57 }, "4-9": { psi: 59 }, "4-10": { psi: 60 }, "4-11": { psi: 61 }, "4-12": { psi: 62 }, "4-13": { psi: 63 }, "4-14": { psi: 65 }, "4-15": { psi: 66 }, "4-16": { psi: 67 }, "4-17": { psi: 68 }, "4-18": { psi: 70 }, "4-19": { psi: 71 }, "4-20": { psi: 73 }, "4-21": { psi: 74 }, "4-22": { psi: 75 }, "4-23": { psi: 184 }, "4-24": { psi: 184 }, "4-25": { psi: 184 }, "4-26": { psi: 197 }, "4-27": { psi: 197 }, "4-28": { psi: 197 },
+  "5-1": { psi: 85 }, "5-2": { psi: 85 }, "5-3": { psi: 85 }, "5-4": { psi: 77 }, "5-5": { psi: 77 }, "5-6": { psi: 77 }, "5-7": { psi: 97 }, "5-8": { psi: 78 }, "5-9": { psi: 79 }, "5-10": { psi: 80 }, "5-11": { psi: 81 }, "5-12": { psi: 82 }, "5-13": { psi: 83 }, "5-14": { psi: 84 }, "5-15": { psi: 86 }, "5-16": { psi: 87 }, "5-17": { psi: 89 }, "5-18": { psi: 90 }, "5-19": { psi: 91 }, "5-20": { psi: 92 }, "5-21": { psi: 94 }, "5-22": { psi: 95 }, "5-23": { psi: 165 }, "5-24": { psi: 165 }, "5-25": { psi: 165 }, "5-26": { psi: 176 }, "5-27": { psi: 176 }, "5-28": { psi: 176 },
+  "6-1": { psi: 69 }, "6-2": { psi: 69 }, "6-3": { psi: 69 }, "6-4": { psi: 72 }, "6-5": { psi: 72 }, "6-6": { psi: 72 }, "6-7": { psi: 98 }, "6-8": { psi: 99 }, "6-9": { psi: 100 }, "6-10": { psi: 101 }, "6-11": { psi: 102 }, "6-12": { psi: 103 }, "6-13": { psi: 104 }, "6-14": { psi: 105 }, "6-15": { psi: 121 }, "6-16": { psi: 122 }, "6-17": { psi: 116 }, "6-18": { psi: 117 }, "6-19": { psi: 118 }, "6-20": { psi: 119 }, "6-21": { psi: 120 }, "6-22": { psi: 123 }, "6-23": { psi: 189 }, "6-24": { psi: 189 }, "6-25": { psi: 189 }, "6-26": { psi: 192 }, "6-27": { psi: 192 }, "6-28": { psi: 192 },
+  "7-1": { psi: 130 }, "7-2": { psi: 130 }, "7-3": { psi: 130 }, "7-4": { psi: 131 }, "7-5": { psi: 131 }, "7-6": { psi: 131 }, "7-7": { psi: 124 }, "7-8": { psi: 125 }, "7-9": { psi: 126 }, "7-10": { psi: 128 }, "7-11": { psi: 129 }, "7-12": { psi: 132 }, "7-13": { psi: 133 }, "7-14": { psi: 135 }, "7-15": { psi: 136 }, "7-16": { psi: 137 }, "7-17": { psi: 138 }, "7-18": { psi: 139 }, "7-19": { psi: 140 }, "7-20": { psi: 141 }, "7-21": { psi: 142 }, "7-22": { psi: 143 }, "7-23": { psi: 127 }, "7-24": { psi: 127 }, "7-25": { psi: 127 }, "7-26": { psi: 134 }, "7-27": { psi: 134 }, "7-28": { psi: 134 },
+  "8-1": { psi: 88 }, "8-2": { psi: 88 }, "8-3": { psi: 88 }, "8-4": { psi: 93 }, "8-5": { psi: 93 }, "8-6": { psi: 93 }, "8-7": { psi: 139 }, "8-8": { psi: 140 }, "8-9": { psi: 141 }, "8-10": { psi: 142 }, "8-11": { psi: 143 }, "8-12": { psi: 144 }, "8-13": { psi: 145 }, "8-14": { psi: 156 }, "8-15": { psi: 157 }, "8-16": { psi: 158 }, "8-17": { psi: 159 }, "8-18": { psi: 160 }, "8-19": { psi: 161 }, "8-20": { psi: 162 }, "8-21": { psi: 163 }, "8-22": { psi: 164 }, "8-23": { psi: 168 }, "8-24": { psi: 168 }, "8-25": { psi: 168 }, "8-26": { psi: 173 }, "8-27": { psi: 173 }, "8-28": { psi: 173 },
+  "9-1": { psi: 106 }, "9-2": { psi: 106 }, "9-3": { psi: 106 }, "9-4": { psi: 115 }, "9-5": { psi: 115 }, "9-6": { psi: 115 }, "9-7": { psi: 166 }, "9-8": { psi: 167 }, "9-9": { psi: 169 }, "9-10": { psi: 170 }, "9-11": { psi: 171 }, "9-12": { psi: 172 }, "9-13": { psi: 174 }, "9-14": { psi: 175 }, "9-15": { psi: 177 }, "9-16": { psi: 178 }, "9-17": { psi: 179 }, "9-18": { psi: 180 }, "9-19": { psi: 181 }, "9-20": { psi: 182 }, "9-21": { psi: 183 }, "9-22": { psi: 185 }, "9-23": { psi: 146 }, "9-24": { psi: 146 }, "9-25": { psi: 146 }, "9-26": { psi: 155 }, "9-27": { psi: 155 }, "9-28": { psi: 155 },
+  "10-1": { psi: 107 }, "10-2": { psi: 107 }, "10-3": { psi: 107 }, "10-4": { psi: 114 }, "10-5": { psi: 114 }, "10-6": { psi: 114 }, "10-7": { psi: 186 }, "10-8": { psi: 187 }, "10-9": { psi: 188 }, "10-10": { psi: 190 }, "10-11": { psi: 191 }, "10-12": { psi: 193 }, "10-13": { psi: 194 }, "10-14": { psi: 195 }, "10-15": { psi: 196 }, "10-16": { psi: 198 }, "10-17": { psi: 199 }, "10-18": { psi: 200 }, "10-19": { psi: 201 }, "10-20": { psi: 202 }, "10-21": { psi: 204 }, "10-22": { psi: 205 }, "10-23": { psi: 147 }, "10-24": { psi: 147 }, "10-25": { psi: 147 }, "10-26": { psi: 154 }, "10-27": { psi: 154 }, "10-28": { psi: 154 },
+  "11-1": { psi: 108 }, "11-2": { psi: 108 }, "11-3": { psi: 108 }, "11-4": { psi: 113 }, "11-5": { psi: 113 }, "11-6": { psi: 113 }, "11-7": { psi: 206 }, "11-8": { psi: 207 }, "11-9": { psi: 208 }, "11-10": { psi: 209 }, "11-11": { psi: 212 }, "11-12": { psi: 213 }, "11-13": { psi: 214 }, "11-14": { psi: 215 }, "11-15": { psi: 216 }, "11-16": { psi: 217 }, "11-17": { psi: 219 }, "11-18": { psi: 220 }, "11-19": { psi: 221 }, "11-20": { psi: 223 }, "11-21": { psi: 224 }, "11-22": { psi: 225 }, "11-23": { psi: 148 }, "11-24": { psi: 148 }, "11-25": { psi: 148 }, "11-26": { psi: 153 }, "11-27": { psi: 153 }, "11-28": { psi: 153 },
+  "12-1": { psi: 109 }, "12-2": { psi: 109 }, "12-3": { psi: 109 }, "12-4": { psi: 112 }, "12-5": { psi: 112 }, "12-6": { psi: 112 }, "12-7": { psi: 226 }, "12-8": { psi: 227 }, "12-9": { psi: 228 }, "12-10": { psi: 229 }, "12-11": { psi: 230 }, "12-12": { psi: 231 }, "12-13": { psi: 232 }, "12-14": { psi: 233 }, "12-15": { psi: 234 }, "12-16": { psi: 235 }, "12-17": { psi: 236 }, "12-18": { psi: 237 }, "12-19": { psi: 238 }, "12-20": { psi: 240 }, "12-21": { psi: 242 }, "12-22": { psi: 243 }, "12-23": { psi: 149 }, "12-24": { psi: 149 }, "12-25": { psi: 149 }, "12-26": { psi: 152 }, "12-27": { psi: 152 }, "12-28": { psi: 152 },
+  "13-1": { psi: 110 }, "13-2": { psi: 110 }, "13-3": { psi: 110 }, "13-4": { psi: 111 }, "13-5": { psi: 111 }, "13-6": { psi: 111 }, "13-7": { psi: 244 }, "13-8": { psi: 245 }, "13-9": { psi: 246 }, "13-10": { psi: 247 }, "13-11": { psi: 248 }, "13-12": { psi: 249 }, "13-13": { psi: 250 }, "13-14": { psi: 251 }, "13-15": { psi: 252 }, "13-16": { psi: 253 }, "13-17": { psi: 254 }, "13-18": { psi: 255 }, "13-19": { psi: 256 }, "13-20": { psi: 257 }, "13-21": { psi: 258 }, "13-22": { psi: 259 }, "13-23": { psi: 150 }, "13-24": { psi: 150 }, "13-25": { psi: 150 }, "13-26": { psi: 151 }, "13-27": { psi: 151 }, "13-28": { psi: 151 }
+};
+
 const labelStyle = { fontSize: '11px', color: '#888', marginTop: '4px', fontWeight: 'normal', whiteSpace: 'nowrap' };
 
 const reportCardStyle = {
@@ -157,8 +174,7 @@ export default function App() {
     }
   };
 
-  // 13 月亮曆的月份與天數 (以 7/26 為起點)
-  const get13MoonDateStr = (inputDate) => {
+  const get13MoonDateInfo = (inputDate) => {
     const dateObj = new Date(inputDate + 'T00:00:00Z');
     let year = dateObj.getUTCFullYear();
     let startYear = year;
@@ -169,12 +185,16 @@ export default function App() {
     const diffTime = Math.abs(dateObj - startDate);
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 364) return "無時間日 (Day Out of Time)";
+    if (diffDays === 364) return { display: "無時間日 (Day Out of Time)", key: "0-0" };
     
     const moon = Math.floor(diffDays / 28) + 1;
     const day = (diffDays % 28) + 1;
     const moonNames = ["磁性", "月亮", "電力", "自我存在", "超頻", "韻律", "共鳴", "銀河星系", "太陽", "行星", "光譜", "水晶", "宇宙"];
-    return `${moonNames[moon - 1]}之月 第 ${day} 天`;
+    
+    return {
+      display: `${moonNames[moon - 1]}之月 第 ${day} 天`,
+      key: `${moon}-${day}`
+    };
   };
 
   const calculateKin = (inputDate) => {
@@ -216,7 +236,40 @@ export default function App() {
   const guideSeal = seals[guideIndex];
   const wavespellSeal = seals[wavespellIndex];
 
-  const moonDateDisplay = get13MoonDateStr(date);
+  // 🚀 協助計算五神諭 Kin 數值的函數
+  const getKinFromIndexAndTone = (sealIdx, tone) => {
+    for (let k = 1; k <= 260; k++) {
+      if (k % 20 === sealIdx && ((k - 1) % 13) + 1 === tone) return k;
+    }
+    return 260;
+  };
+
+  const getSealColor = (index) => {
+    const colors = ["#d32f2f", "#757575", "#1976d2", "#fbc02d"]; 
+    return colors[index % 4];
+  };
+
+  const getAdvancedKinDetails = (calculatedKin) => {
+    if (!calculatedKin) return { name: "", color: "#333" };
+    const tone = ((calculatedKin - 1) % 13) + 1;
+    const sealIndex = calculatedKin % 20;
+    const seal = seals[sealIndex];
+    const name = `${toneNames[tone - 1]}的${seal.name}`;
+    const color = getSealColor(sealIndex);
+    return { kin: calculatedKin, name, color };
+  };
+
+  // 🚀 女神印記算法：主印記 + 引導 + 支持 + 挑戰 + 推動
+  const guideKinNum = getKinFromIndexAndTone(guideIndex, toneNumber);
+  const supportKinNum = getKinFromIndexAndTone(supportIndex, toneNumber);
+  const challengeKinNum = getKinFromIndexAndTone(challengeIndex, toneNumber);
+  const hiddenKinNum = getKinFromIndexAndTone(hiddenIndex, bottomToneNumber);
+  const goddessKinNum = (kinNumber + guideKinNum + supportKinNum + challengeKinNum + hiddenKinNum) % 260 || 260;
+  const goddessKinDetails = getAdvancedKinDetails(goddessKinNum);
+
+  const moonInfo = get13MoonDateInfo(date);
+  const moonDateDisplay = moonInfo.display;
+  const advData = advancedMatrixData[moonInfo.key];
 
   const todayDateString = getTodayString();
   const todayKinNumber = calculateKin(todayDateString);
@@ -493,22 +546,32 @@ export default function App() {
                   <div style={{...reportRowStyle, borderBottom: 'none'}}><div style={reportLabelStyle}>推動</div><div style={{...reportValueStyle, color: '#757575'}}>{fullHiddenName} (Kin {fullHiddenKin})</div></div>
                 </div>
 
-                {/* 🚀 高階星際數據卡片 (回歸安全的鎖定狀態) */}
+                {/* 🚀 安全版：高階星際數據卡片 (解鎖女神印記) */}
                 <div style={{...reportCardStyle, backgroundColor: '#fff8e1', borderColor: '#ffe082'}}>
                   <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#e65100', marginBottom: '15px' }}>高階星際數據 (Synchronotron 441)</div>
                   
                   <div style={reportRowStyle}>
                     <div style={reportLabelStyle}>PSI 記憶</div>
-                    <div style={{ ...reportValueStyle, color: '#aaa', fontWeight: 'normal', fontSize: '12px' }}>🔒 待 441 矩陣解鎖</div>
+                    {advData && advData.psi ? (
+                      <div style={{ ...reportValueStyle, color: getAdvancedKinDetails(advData.psi).color }}>Kin {advData.psi} {getAdvancedKinDetails(advData.psi).name}</div>
+                    ) : (
+                      <div style={{ ...reportValueStyle, color: '#aaa', fontWeight: 'normal', fontSize: '12px' }}>🔒 待字典建檔解鎖</div>
+                    )}
                   </div>
+
                   <div style={reportRowStyle}>
                     <div style={reportLabelStyle}>女神印記</div>
-                    <div style={{ ...reportValueStyle, color: '#aaa', fontWeight: 'normal', fontSize: '12px' }}>🔒 待 441 矩陣解鎖</div>
+                    {/* 🚀 這裡已經全面解鎖！不再依賴字典，直接算出！ */}
+                    <div style={{ ...reportValueStyle, color: goddessKinDetails.color }}>
+                      Kin {goddessKinNum} {goddessKinDetails.name}
+                    </div>
                   </div>
+
                   <div style={reportRowStyle}>
                     <div style={reportLabelStyle}>對等 Kin</div>
                     <div style={{ ...reportValueStyle, color: '#aaa', fontWeight: 'normal', fontSize: '12px' }}>🔒 待 441 矩陣解鎖</div>
                   </div>
+
                   <div style={{...reportRowStyle, borderBottom: 'none'}}>
                     <div style={reportLabelStyle}>HK21 對等</div>
                     <div style={{ ...reportValueStyle, color: '#aaa', fontWeight: 'normal', fontSize: '12px' }}>🔒 待 441 矩陣解鎖</div>

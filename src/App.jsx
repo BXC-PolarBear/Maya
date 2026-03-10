@@ -183,14 +183,6 @@ export default function App() {
     if (!liff.isLoggedIn()) liff.login();
   };
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    if (liff.isLoggedIn()) {
-      liff.logout();
-      window.location.reload(); 
-    }
-  };
-
   const get13MoonDateInfo = (inputDate) => {
     const dateObj = new Date(inputDate + 'T00:00:00Z');
     let year = dateObj.getUTCFullYear();
@@ -260,7 +252,6 @@ export default function App() {
     return 260;
   };
 
-  // 🚀 關鍵修復：將顏色陣列的順序修正，0 (黃太陽) 對應黃色
   const getSealColor = (index) => {
     const colors = ["#fbc02d", "#d32f2f", "#757575", "#1976d2"]; // 黃, 紅, 白, 藍
     return colors[index % 4];
@@ -511,11 +502,11 @@ export default function App() {
               )}
             </div>
 
+            {/* 🚀 已經將「登出」按鈕徹底拔除，只留下返回雲端庫功能 */}
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => setShowRecordsView(!showRecordsView)} style={{ padding: '6px 10px', fontSize: '12px', backgroundColor: showRecordsView ? '#d81b60' : '#fff', border: '1px solid #d81b60', color: showRecordsView ? '#fff' : '#d81b60', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
                 {showRecordsView ? '✕ 返回系統' : '📂 雲端紀錄庫'}
               </button>
-              <button onClick={handleLogout} style={{ padding: '6px 10px', fontSize: '12px', backgroundColor: 'transparent', border: '1px solid #aaa', color: '#aaa', borderRadius: '8px', cursor: 'pointer' }}>登出</button>
             </div>
           </div>
 

@@ -82,7 +82,7 @@ export default function App() {
   const [savedRecords, setSavedRecords] = useState([]);
   const [showRecordsView, setShowRecordsView] = useState(false);
 
-  // 🚀 初始化 LINE LIFF
+  // 🚀 初始化 LINE LIFF 與 Firebase 自動橋接
   useEffect(() => {
     const initLiff = async () => {
       try {
@@ -91,6 +91,29 @@ export default function App() {
           const profile = await liff.getProfile();
           setLineProfile(profile);
           console.log("✅ LINE 登入成功！", profile);
+
+          // --- 🌉 建立 LINE 與 Firebase 的橋樑 (秘密通道) ---
+          // 用使用者的 LINE ID 組合出一組專屬的 Firebase 虛擬帳號與密碼
+          const lineEmail = `${profile.userId}@line.bxc.com`;
+          const linePassword = `Liff_${profile.userId}_Secret`; 
+
+          try {
+            // 嘗試幫他自動登入 Firebase
+            await signInWithEmailAndPassword(auth, lineEmail, linePassword);
+            console.log("✅ Firebase 自動通關成功！");
+          } catch (error) {
+            // 如果報錯說「找不到帳號」，代表他是第一次玩，我們直接幫他註冊並登入！
+            if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-login-credentials') {
+              try {
+                 await createUserWithEmailAndPassword(auth, lineEmail, linePassword);
+                 console.log("✅ Firebase 專屬帳號自動建立成功！");
+              } catch (regError) {
+                 console.error("Firebase 自動註冊失敗", regError);
+              }
+            } else {
+              console.error("Firebase 自動登入發生錯誤", error);
+            }
+          }
         }
       } catch (err) {
         console.error("❌ LIFF 初始化失敗", err);
@@ -360,10 +383,9 @@ export default function App() {
               <button type="submit" style={{ padding: '12px', fontSize: '16px', fontWeight: 'bold', color: '#fff', backgroundColor: '#ec407a', border: 'none', borderRadius: '10px', cursor: 'pointer', marginTop: '10px' }}>{isLoginMode ? '登入' : '註冊'}</button>
             </form>
             <div style={{ margin: '20px 0', color: '#aaa', fontSize: '12px' }}>或</div>
-            
+
             {/* 🚀 替換為 LINE 按鈕 */}
             <button type="button" onClick={handleLineLogin} style={{ width: '100%', padding: '12px', fontSize: '15px', fontWeight: 'bold', color: '#fff', backgroundColor: '#06C755', border: 'none', borderRadius: '10px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
-              <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" alt="LINE" style={{ width: '20px', filter: 'brightness(0) invert(1)' }} />
               使用 LINE 一鍵登入
             </button>
 

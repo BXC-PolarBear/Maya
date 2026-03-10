@@ -5,8 +5,8 @@ import './App.css';
 // 🚀 引入 LINE LIFF 套件
 import liff from '@line/liff';
 
-// 🔥 引入 Firebase 驗證與資料庫功能 🔥
-import { auth, db } from './firebase'; // 移除了用不到的 googleProvider
+// 🔥 引入 Firebase 驗證與資料庫功能
+import { auth, db } from './firebase'; 
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
@@ -40,7 +40,6 @@ const castleColors = ["#d32f2f", "#757575", "#1976d2", "#fbc02d", "#388e3c"];
 
 const labelStyle = { fontSize: '11px', color: '#888', marginTop: '4px', fontWeight: 'normal', whiteSpace: 'nowrap' };
 
-// UI 樣式設定
 const reportCardStyle = {
   backgroundColor: '#f8fafd', borderRadius: '16px', padding: '20px', marginTop: '20px', 
   width: '100%', boxSizing: 'border-box', border: '1px solid #e8eaf6'
@@ -67,18 +66,13 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
-  // 🚀 記錄 LINE 使用者資料的狀態
   const [lineProfile, setLineProfile] = useState(null);
-
   const [date, setDate] = useState(getTodayString());
   const [userName, setUserName] = useState(''); 
   const captureRef = useRef(null); 
   const [previewImage, setPreviewImage] = useState(null);
-
   const [aiResponse, setAiResponse] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
-
-  // 儲存親友紀錄的清單狀態與切換模式
   const [savedRecords, setSavedRecords] = useState([]);
   const [showRecordsView, setShowRecordsView] = useState(false);
 
@@ -92,17 +86,13 @@ export default function App() {
           setLineProfile(profile);
           console.log("✅ LINE 登入成功！", profile);
 
-          // --- 🌉 建立 LINE 與 Firebase 的橋樑 (秘密通道) ---
-          // 用使用者的 LINE ID 組合出一組專屬的 Firebase 虛擬帳號與密碼
           const lineEmail = `${profile.userId}@line.bxc.com`;
           const linePassword = `Liff_${profile.userId}_Secret`; 
 
           try {
-            // 嘗試幫他自動登入 Firebase
             await signInWithEmailAndPassword(auth, lineEmail, linePassword);
             console.log("✅ Firebase 自動通關成功！");
           } catch (error) {
-            // 如果報錯說「找不到帳號」，代表他是第一次玩，我們直接幫他註冊並登入！
             if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-login-credentials') {
               try {
                  await createUserWithEmailAndPassword(auth, lineEmail, linePassword);
@@ -122,7 +112,6 @@ export default function App() {
     initLiff();
   }, []);
 
-  // 🔥 登入時從 Firebase Firestore 抓取雲端紀錄 🔥
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
@@ -168,7 +157,6 @@ export default function App() {
     }
   };
 
-  // 🚀 觸發 LINE 登入的函數
   const handleLineLogin = () => {
     if (!liff.isLoggedIn()) {
       liff.login();
@@ -177,6 +165,10 @@ export default function App() {
 
   const handleLogout = async () => {
     await signOut(auth);
+    if (liff.isLoggedIn()) {
+      liff.logout();
+      window.location.reload(); 
+    }
   };
 
   const calculateKin = (inputDate) => {
@@ -194,7 +186,6 @@ export default function App() {
     return currentKin;
   };
 
-  // --- 計算個人主印記與神諭陣 ---
   const kinNumber = calculateKin(date);
   const toneNumber = ((kinNumber - 1) % 13) + 1;
   const bottomToneNumber = 14 - toneNumber;
@@ -220,7 +211,7 @@ export default function App() {
   const wavespellSeal = seals[wavespellIndex];
 
   const getSealColor = (index) => {
-    const colors = ["#d32f2f", "#757575", "#1976d2", "#fbc02d"]; // 紅, 白, 藍, 黃
+    const colors = ["#d32f2f", "#757575", "#1976d2", "#fbc02d"]; 
     return colors[index % 4];
   };
 
@@ -236,7 +227,6 @@ export default function App() {
   const innerGoddessKinNum = (kinNumber + 126) % 260 || 260;
   const innerGoddess = getAdvancedKinDetails(innerGoddessKinNum);
 
-  // --- 計算宇宙今日印記 ---
   const todayDateString = getTodayString();
   const todayKinNumber = calculateKin(todayDateString);
   const todayToneNumber = ((todayKinNumber - 1) % 13) + 1;
@@ -264,7 +254,6 @@ export default function App() {
   const dateParts = date.split('-');
   const formattedDate = `${dateParts[0]}/${parseInt(dateParts[1], 10)}/${parseInt(dateParts[2], 10)}`;
 
-  // --- 雲端資料庫操作 ---
   const handleSaveRecord = async () => {
     if (!userName.trim()) return alert("請先在上方輸入「姓名」才能儲存喔！");
     if (!user) return alert("請先登入才能使用雲端儲存功能！");
@@ -358,20 +347,10 @@ export default function App() {
     }
   };
 
-  // --- UI 介面 ---
   return (
     <div style={{ background: 'linear-gradient(135deg, #fff0f5 0%, #fce4ec 100%)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'sans-serif' }}>
 
-      {/* 🚀 LINE 登入測試橫幅 (全域顯示) */}
-      {lineProfile && (
-        <div style={{ width: '100%', backgroundColor: '#00B900', color: 'white', padding: '10px', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
-          <img src={lineProfile.pictureUrl} alt="LINE頭貼" style={{ width: '30px', height: '30px', borderRadius: '50%', marginRight: '10px', border: '2px solid white' }} />
-          <span style={{ fontWeight: 'bold', fontSize: '15px' }}>LINE 授權成功：{lineProfile.displayName}</span>
-        </div>
-      )}
-
       {!user ? (
-        /* 登入畫面 */
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', width: '100%' }}>
           <div style={{ backgroundColor: '#fff', padding: '40px 30px', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', width: '100%', maxWidth: '350px', textAlign: 'center' }}>
             <img src="/Bxc Balance LOGO.png" alt="LOGO" style={{ width: '100px', marginBottom: '20px' }} />
@@ -384,8 +363,8 @@ export default function App() {
             </form>
             <div style={{ margin: '20px 0', color: '#aaa', fontSize: '12px' }}>或</div>
 
-            {/* 🚀 替換為 LINE 按鈕 */}
             <button type="button" onClick={handleLineLogin} style={{ width: '100%', padding: '12px', fontSize: '15px', fontWeight: 'bold', color: '#fff', backgroundColor: '#06C755', border: 'none', borderRadius: '10px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '20px' }}>💬</span>
               使用 LINE 一鍵登入
             </button>
 
@@ -396,11 +375,24 @@ export default function App() {
           </div>
         </div>
       ) : (
-        /* 主畫面結構 */
         <div style={{ padding: '15px', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          {/* 頂端導覽列 */}
-          <div style={{ width: '100%', maxWidth: '380px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-            <span style={{ fontSize: '12px', color: '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '150px' }}>Hi, {user.email}</span>
+
+          {/* 🚀 頂端導覽列 (加入 LINE 頭像與名稱) */}
+          <div style={{ width: '100%', maxWidth: '380px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', padding: '0 5px', boxSizing: 'border-box' }}>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {lineProfile ? (
+                <>
+                  <img src={lineProfile.pictureUrl} alt="頭貼" style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid #f8bbd0', objectFit: 'cover' }} />
+                  <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#d81b60' }}>
+                    Hi, {lineProfile.displayName}
+                  </span>
+                </>
+              ) : (
+                <span style={{ fontSize: '14px', color: '#888' }}>Hi, 旅人</span>
+              )}
+            </div>
+
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => setShowRecordsView(!showRecordsView)} style={{ padding: '6px 10px', fontSize: '12px', backgroundColor: showRecordsView ? '#d81b60' : '#fff', border: '1px solid #d81b60', color: showRecordsView ? '#fff' : '#d81b60', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
                 {showRecordsView ? '✕ 返回神諭陣' : '📂 雲端紀錄庫'}
@@ -410,7 +402,6 @@ export default function App() {
           </div>
 
           {showRecordsView ? (
-            /* 🔴 視圖 1：雲端親友紀錄庫清單 🔴 */
             <div style={{ width: '100%', maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <h3 style={{ color: '#d81b60', margin: '0 0 10px 0', textAlign: 'center' }}>☁️ 雲端親友資料庫</h3>
               {savedRecords.length === 0 ? (
@@ -434,7 +425,6 @@ export default function App() {
               )}
             </div>
           ) : (
-            /* 🔴 視圖 2：主神諭陣計算器 🔴 */
             <>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', marginBottom: '20px', width: '100%', maxWidth: '380px', boxSizing: 'border-box' }}>
                 <h2 style={{ color: '#d81b60', margin: '0' }}>13月亮曆印記查詢</h2>
@@ -491,7 +481,6 @@ export default function App() {
                   <div style={{...reportRowStyle, borderBottom: 'none'}}><div style={reportLabelStyle}>推動</div><div style={{...reportValueStyle, color: '#757575'}}>{fullHiddenName} (Kin {fullHiddenKin})</div></div>
                 </div>
 
-                {/* 🚀 高階星際數據卡片 (內在女神) */}
                 <div style={{...reportCardStyle, backgroundColor: '#fff8e1', borderColor: '#ffe082'}}>
                   <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#e65100', marginBottom: '15px' }}>高階星際數據</div>
                   <div style={reportRowStyle}>
@@ -528,7 +517,6 @@ export default function App() {
             </>
           )}
 
-          {/* 截圖預覽遮罩 */}
           {previewImage && (
             <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', boxSizing: 'border-box' }}>
               <p style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold', marginBottom: '20px', letterSpacing: '1px' }}>📱 請長按下方圖片即可儲存</p>

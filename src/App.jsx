@@ -76,7 +76,10 @@ export default function App() {
   const [savedRecords, setSavedRecords] = useState([]);
   const [showRecordsView, setShowRecordsView] = useState(false);
 
-  // 🚀 初始化 LINE LIFF 與 Firebase 自動橋接
+  // 🚀 UI 狀態管理：切換分頁與下拉選單
+  const [activeTab, setActiveTab] = useState('query'); // 'query' (查詢) 或 'daily' (流日)
+  const [selectedRecordId, setSelectedRecordId] = useState('current'); // 流日選擇的對象
+
   useEffect(() => {
     const initLiff = async () => {
       try {
@@ -84,29 +87,24 @@ export default function App() {
         if (liff.isLoggedIn()) {
           const profile = await liff.getProfile();
           setLineProfile(profile);
-          console.log("✅ LINE 登入成功！", profile);
 
           const lineEmail = `${profile.userId}@line.bxc.com`;
           const linePassword = `Liff_${profile.userId}_Secret`; 
 
           try {
             await signInWithEmailAndPassword(auth, lineEmail, linePassword);
-            console.log("✅ Firebase 自動通關成功！");
           } catch (error) {
             if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-login-credentials') {
               try {
                  await createUserWithEmailAndPassword(auth, lineEmail, linePassword);
-                 console.log("✅ Firebase 專屬帳號自動建立成功！");
               } catch (regError) {
                  console.error("Firebase 自動註冊失敗", regError);
               }
-            } else {
-              console.error("Firebase 自動登入發生錯誤", error);
             }
           }
         }
       } catch (err) {
-        console.error("❌ LIFF 初始化失敗", err);
+        console.error("LIFF 初始化失敗", err);
       }
     };
     initLiff();
@@ -158,9 +156,7 @@ export default function App() {
   };
 
   const handleLineLogin = () => {
-    if (!liff.isLoggedIn()) {
-      liff.login();
-    }
+    if (!liff.isLoggedIn()) liff.login();
   };
 
   const handleLogout = async () => {
@@ -186,6 +182,7 @@ export default function App() {
     return currentKin;
   };
 
+  // --- 計算當前輸入者的主印記 ---
   const kinNumber = calculateKin(date);
   const toneNumber = ((kinNumber - 1) % 13) + 1;
   const bottomToneNumber = 14 - toneNumber;
@@ -227,6 +224,7 @@ export default function App() {
   const innerGoddessKinNum = (kinNumber + 126) % 260 || 260;
   const innerGoddess = getAdvancedKinDetails(innerGoddessKinNum);
 
+  // --- 計算宇宙今日印記 ---
   const todayDateString = getTodayString();
   const todayKinNumber = calculateKin(todayDateString);
   const todayToneNumber = ((todayKinNumber - 1) % 13) + 1;
@@ -243,12 +241,6 @@ export default function App() {
   const fullHiddenTone = ((fullHiddenKin - 1) % 13) + 1;
   const fullHiddenSeal = seals[fullHiddenKin % 20];
   const fullHiddenName = `${toneNames[fullHiddenTone - 1]}的${fullHiddenSeal.name}`;
-
-  let personalDailyKin = (kinNumber + todayKinNumber) % 260;
-  if (personalDailyKin === 0) personalDailyKin = 260;
-  const personalDailyToneNumber = ((personalDailyKin - 1) % 13) + 1;
-  const personalDailyMainSeal = seals[personalDailyKin % 20];
-  const personalDailyToneName = toneNames[personalDailyToneNumber - 1];
 
   const isDefaultName = !userName || userName.trim() === '';
   const dateParts = date.split('-');
@@ -288,7 +280,6 @@ export default function App() {
       setSavedRecords(savedRecords.filter(r => r.id !== idToRemove));
     } catch (error) {
       console.error("刪除雲端紀錄失敗", error);
-      alert("刪除失敗！請稍後再試。");
     }
   };
 
@@ -296,19 +287,45 @@ export default function App() {
     setUserName(record.name);
     setDate(record.date);
     setShowRecordsView(false); 
-    setAiResponse(''); 
+    setActiveTab('query'); // 載入後自動切回查詢頁面
+    setSelectedRecordId('current'); // 重置流日選擇
   };
 
+  // 🚀 全新改版的 AI 流日分析函數 (支援指定對象)
   const handleGenerateGuidance = async () => {
     setIsAiLoading(true);
     setAiResponse('');
+
     try {
-      const targetName = isDefaultName ? '這位星際旅人' : userName;
+      let targetName, targetKin, targetToneName, targetSealName;
+
+      // 判斷是要分析「當前畫面的人」還是「雲端親友」
+      if (selectedRecordId === 'current') {
+        targetName = isDefaultName ? '這位星際旅人' : userName;
+        targetKin = kinNumber;
+        targetToneName = currentToneName;
+        targetSealName = mainSeal.name;
+      } else {
+        const record = savedRecords.find(r => r.id === selectedRecordId);
+        if (!record) throw new Error("找不到該筆親友資料");
+        targetName = record.name;
+        targetKin = record.kin;
+        targetToneName = record.toneName;
+        targetSealName = record.sealName;
+      }
+
+      // 動態計算所選對象與今日宇宙的「合盤印記」
+      let pDailyKin = (targetKin + todayKinNumber) % 260;
+      if (pDailyKin === 0) pDailyKin = 260;
+      const pDailyToneNumber = ((pDailyKin - 1) % 13) + 1;
+      const pDailyMainSeal = seals[pDailyKin % 20];
+      const pDailyToneName = toneNames[pDailyToneNumber - 1];
+
       const prompt = `你是一位專業且溫暖的瑪雅13月亮曆解讀師。
-      使用者 ${targetName} 的主印記是：「KIN ${kinNumber} ${currentToneName}的${mainSeal.name}」。
+      使用者 ${targetName} 的主印記是：「KIN ${targetKin} ${targetToneName}的${targetSealName}」。
       今天的宇宙流日印記是：「KIN ${todayKinNumber} ${todayToneName}的${todayMainSeal.name}」。
-      根據瑪雅曆法合盤算法，這兩者結合而成的【個人專屬今日流日印記】為：「KIN ${personalDailyKin} ${personalDailyToneName}的${personalDailyMainSeal.name}」。
-      請直接以這個專屬流日印記（KIN ${personalDailyKin}）的能量氛圍為核心，用 100 字以內，給 ${targetName} 一段今天專屬的行動建議與祝福。
+      根據瑪雅曆法合盤算法，這兩者結合而成的【個人專屬今日流日印記】為：「KIN ${pDailyKin} ${pDailyToneName}的${pDailyMainSeal.name}」。
+      請直接以這個專屬流日印記（KIN ${pDailyKin}）的能量氛圍為核心，用 100 字以內，給 ${targetName} 一段今天專屬的行動建議與祝福。
       【重要指令】：請務必使用「繁體中文（台灣）」輸出，語氣要溫暖正向。不要輸出Markdown標題符號，直接給純文字建議即可。`;
 
       const apiKey = import.meta.env.VITE_GROQ_API_KEY;
@@ -377,9 +394,8 @@ export default function App() {
       ) : (
         <div style={{ padding: '15px', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-          {/* 🚀 頂端導覽列 (加入 LINE 頭像與名稱) */}
+          {/* 頂端導覽列 */}
           <div style={{ width: '100%', maxWidth: '380px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', padding: '0 5px', boxSizing: 'border-box' }}>
-
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               {lineProfile ? (
                 <>
@@ -395,13 +411,26 @@ export default function App() {
 
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => setShowRecordsView(!showRecordsView)} style={{ padding: '6px 10px', fontSize: '12px', backgroundColor: showRecordsView ? '#d81b60' : '#fff', border: '1px solid #d81b60', color: showRecordsView ? '#fff' : '#d81b60', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-                {showRecordsView ? '✕ 返回神諭陣' : '📂 雲端紀錄庫'}
+                {showRecordsView ? '✕ 返回系統' : '📂 雲端紀錄庫'}
               </button>
               <button onClick={handleLogout} style={{ padding: '6px 10px', fontSize: '12px', backgroundColor: 'transparent', border: '1px solid #aaa', color: '#aaa', borderRadius: '8px', cursor: 'pointer' }}>登出</button>
             </div>
           </div>
 
+          {/* 🚀 新增：雙分頁切換按鈕 */}
+          {!showRecordsView && (
+            <div style={{ display: 'flex', width: '100%', maxWidth: '380px', marginBottom: '15px', backgroundColor: '#fff', borderRadius: '12px', padding: '5px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+              <button onClick={() => setActiveTab('query')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'query' ? '#ffebee' : 'transparent', color: activeTab === 'query' ? '#d81b60' : '#888', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s' }}>
+                🔍 13月亮曆查詢
+              </button>
+              <button onClick={() => setActiveTab('daily')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'daily' ? '#f3e5f5' : 'transparent', color: activeTab === 'daily' ? '#8e24aa' : '#888', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s' }}>
+                🌟 今日流日(AI測試版)
+              </button>
+            </div>
+          )}
+
           {showRecordsView ? (
+            /* 🔴 視圖 1：雲端親友紀錄庫清單 🔴 */
             <div style={{ width: '100%', maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <h3 style={{ color: '#d81b60', margin: '0 0 10px 0', textAlign: 'center' }}>☁️ 雲端親友資料庫</h3>
               {savedRecords.length === 0 ? (
@@ -417,31 +446,28 @@ export default function App() {
                       <span style={{ fontSize: '12px', color: '#3949ab', fontWeight: 'bold' }}>KIN {record.kin} {record.toneName}的{record.sealName}</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <button onClick={() => handleLoadRecord(record)} style={{ padding: '6px 15px', fontSize: '12px', backgroundColor: '#e3f2fd', color: '#1976d2', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>載入</button>
+                      <button onClick={() => handleLoadRecord(record)} style={{ padding: '6px 15px', fontSize: '12px', backgroundColor: '#e3f2fd', color: '#1976d2', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>排盤</button>
                       <button onClick={() => handleDeleteRecord(record.id)} style={{ padding: '6px 15px', fontSize: '12px', backgroundColor: '#ffebee', color: '#d32f2f', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>刪除</button>
                     </div>
                   </div>
                 ))
               )}
             </div>
-          ) : (
+          ) : activeTab === 'query' ? (
+            /* 🔴 視圖 2-1：主神諭陣查詢版面 🔴 */
             <>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', marginBottom: '20px', width: '100%', maxWidth: '380px', boxSizing: 'border-box' }}>
-                <h2 style={{ color: '#d81b60', margin: '0' }}>13月亮曆印記查詢</h2>
                 <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
                   <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="請輸入名字" style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #f8bbd0', outline: 'none', boxSizing: 'border-box', minWidth: '0' }} />
                   <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #f8bbd0', outline: 'none', boxSizing: 'border-box', minWidth: '0' }} />
                 </div>
-
+                {/* 🚀 移除原本的 AI 按鈕，只保留這兩顆功能鍵 */}
                 <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
-                  <button onClick={handleGenerateGuidance} disabled={isAiLoading} style={{ flex: 1, padding: '10px 5px', fontSize: '13px', fontWeight: 'bold', color: '#fff', backgroundColor: '#ab47bc', border: 'none', borderRadius: '8px', cursor: isAiLoading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 10px rgba(171, 71, 188, 0.3)', boxSizing: 'border-box' }}>
-                    {isAiLoading ? '解析中...' : '✨ 今日解析'}
-                  </button>
                   <button onClick={downloadScreenshot} style={{ flex: 1, padding: '10px 5px', fontSize: '13px', fontWeight: 'bold', color: '#fff', backgroundColor: '#ec407a', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(236, 64, 122, 0.3)', boxSizing: 'border-box' }}>
-                    📸 另存圖片
+                    📸 另存圖卡
                   </button>
                   <button onClick={handleSaveRecord} style={{ flex: 1, padding: '10px 5px', fontSize: '13px', fontWeight: 'bold', color: '#fff', backgroundColor: '#26a69a', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(38, 166, 154, 0.3)', boxSizing: 'border-box' }}>
-                    💾 雲端儲存
+                    💾 儲存至雲端
                   </button>
                 </div>
               </div>
@@ -451,7 +477,7 @@ export default function App() {
                 <div style={{ textAlign: 'center', marginTop: '5px', marginBottom: '25px' }}>
                   <div style={{ fontSize: '16px', color: '#f06292', letterSpacing: '2px', marginBottom: '8px' }}>✨ 星系矩陣 ✨</div>
                   <div style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>
-                    {isDefaultName ? '今日的主印記' : `${userName}的主印記`} {formattedDate}
+                    {isDefaultName ? '此日期的主印記' : `${userName}的主印記`} {formattedDate}
                   </div>
                   <div style={{ fontSize: '26px', fontWeight: '800', color: '#3949ab', marginBottom: '8px' }}>KIN {kinNumber}</div>
                   <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#5c6bc0', marginBottom: '12px' }}>
@@ -501,20 +527,64 @@ export default function App() {
                   </div>
                 </div>
 
-                {aiResponse && (
-                  <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f3e5f5', borderRadius: '15px', border: '1px solid #e1bee7', width: '100%', boxSizing: 'border-box' }}>
-                    <h4 style={{ color: '#8e24aa', margin: '0 0 8px 0', fontSize: '14px', textAlign: 'center' }}>✨ 今日宇宙導航</h4>
-                    <p style={{ color: '#4a148c', fontSize: '13px', lineHeight: '1.6', margin: 0, textAlign: 'justify' }}>
-                      {aiResponse}
-                    </p>
-                  </div>
-                )}
-
                 <div style={{ marginTop: '20px', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                   <img src="/Bxc Balance LOGO.png" alt="Bxc Balance LOGO" style={{ width: '120px', height: 'auto', opacity: 0.8, transform: 'translateX(-10px)' }} />
                 </div>
               </div>
             </>
+          ) : (
+            /* 🔴 視圖 2-2：全新 AI 流日分析版面 🔴 */
+            <div style={{ width: '100%', maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+
+              {/* 今日印記展示卡片 */}
+              <div style={{ backgroundColor: '#ffffff', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', padding: '30px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ fontSize: '14px', color: '#666', marginBottom: '10px' }}>今日宇宙能量 ({getTodayString()})</div>
+                <div style={{ fontSize: '32px', fontWeight: '900', color: '#4a148c', marginBottom: '10px' }}>KIN {todayKinNumber}</div>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#7b1fa2', marginBottom: '20px' }}>
+                  {todayToneName}的{todayMainSeal.name}
+                </div>
+                <img src={todayMainSeal.img} alt={todayMainSeal.name} style={{ width: '90px', marginBottom: '15px' }} />
+                <img src={`/tone_${todayToneNumber}.png`} alt={`調性 ${todayToneNumber}`} style={{ height: '18px', objectFit: 'contain' }} />
+              </div>
+
+              {/* AI 分析操作區 */}
+              <div style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
+                <h4 style={{ margin: '0 0 15px 0', color: '#555', fontSize: '15px' }}>✨ 獲取專屬流日指引</h4>
+                <div style={{ display: 'flex', gap: '10px', width: '100%', alignItems: 'center' }}>
+                  <select
+                    value={selectedRecordId}
+                    onChange={(e) => setSelectedRecordId(e.target.value)}
+                    style={{ flex: 2, padding: '12px 10px', borderRadius: '8px', border: '1px solid #ce93d8', outline: 'none', backgroundColor: '#fafafa', fontSize: '14px', color: '#333' }}
+                  >
+                    <option value="current">目前輸入 ({userName || '未命名'})</option>
+                    {savedRecords.length > 0 && (
+                      <optgroup label="☁️ 雲端親友資料庫">
+                        {savedRecords.map(r => (
+                          <option key={r.id} value={r.id}>{r.name} (Kin {r.kin})</option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                  <button
+                    onClick={handleGenerateGuidance}
+                    disabled={isAiLoading}
+                    style={{ flex: 1, padding: '12px 5px', fontSize: '14px', fontWeight: 'bold', color: '#fff', backgroundColor: '#ab47bc', border: 'none', borderRadius: '8px', cursor: isAiLoading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 10px rgba(171, 71, 188, 0.3)' }}
+                  >
+                    {isAiLoading ? '解析中...' : '今日分析'}
+                  </button>
+                </div>
+
+                {/* AI 回應區塊 */}
+                {aiResponse && (
+                  <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f3e5f5', borderRadius: '15px', border: '1px solid #e1bee7', width: '100%', boxSizing: 'border-box' }}>
+                    <h4 style={{ color: '#8e24aa', margin: '0 0 8px 0', fontSize: '14px', textAlign: 'center' }}>✨ 專屬宇宙導航</h4>
+                    <p style={{ color: '#4a148c', fontSize: '14px', lineHeight: '1.7', margin: 0, textAlign: 'justify' }}>
+                      {aiResponse}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
 
           {previewImage && (

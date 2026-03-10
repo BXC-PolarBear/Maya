@@ -2,15 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import './App.css';
 
-// 🚀 新增：引入 LINE LIFF 套件
+// 🚀 引入 LINE LIFF 套件
 import liff from '@line/liff';
 
 // 🔥 引入 Firebase 驗證與資料庫功能 🔥
-import { auth, googleProvider, db } from './firebase';
+import { auth, db } from './firebase'; // 移除了用不到的 googleProvider
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
-  signInWithPopup, 
   onAuthStateChanged, 
   signOut 
 } from 'firebase/auth';
@@ -68,7 +67,7 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
-  // 🚀 新增：記錄 LINE 使用者資料的狀態
+  // 🚀 記錄 LINE 使用者資料的狀態
   const [lineProfile, setLineProfile] = useState(null);
 
   const [date, setDate] = useState(getTodayString());
@@ -83,7 +82,7 @@ export default function App() {
   const [savedRecords, setSavedRecords] = useState([]);
   const [showRecordsView, setShowRecordsView] = useState(false);
 
-  // 🚀 新增：初始化 LINE LIFF
+  // 🚀 初始化 LINE LIFF
   useEffect(() => {
     const initLiff = async () => {
       try {
@@ -146,12 +145,10 @@ export default function App() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setAuthError('');
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      setAuthError("Google 登入失敗或已取消");
+  // 🚀 觸發 LINE 登入的函數
+  const handleLineLogin = () => {
+    if (!liff.isLoggedIn()) {
+      liff.login();
     }
   };
 
@@ -199,7 +196,6 @@ export default function App() {
   const guideSeal = seals[guideIndex];
   const wavespellSeal = seals[wavespellIndex];
 
-  // 🚀 新增：計算高階星際數據 (內在女神)
   const getSealColor = (index) => {
     const colors = ["#d32f2f", "#757575", "#1976d2", "#fbc02d"]; // 紅, 白, 藍, 黃
     return colors[index % 4];
@@ -343,7 +339,7 @@ export default function App() {
   return (
     <div style={{ background: 'linear-gradient(135deg, #fff0f5 0%, #fce4ec 100%)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'sans-serif' }}>
 
-      {/* 🚀 新增：LINE 登入測試橫幅 (全域顯示) */}
+      {/* 🚀 LINE 登入測試橫幅 (全域顯示) */}
       {lineProfile && (
         <div style={{ width: '100%', backgroundColor: '#00B900', color: 'white', padding: '10px', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
           <img src={lineProfile.pictureUrl} alt="LINE頭貼" style={{ width: '30px', height: '30px', borderRadius: '50%', marginRight: '10px', border: '2px solid white' }} />
@@ -364,9 +360,13 @@ export default function App() {
               <button type="submit" style={{ padding: '12px', fontSize: '16px', fontWeight: 'bold', color: '#fff', backgroundColor: '#ec407a', border: 'none', borderRadius: '10px', cursor: 'pointer', marginTop: '10px' }}>{isLoginMode ? '登入' : '註冊'}</button>
             </form>
             <div style={{ margin: '20px 0', color: '#aaa', fontSize: '12px' }}>或</div>
-            <button onClick={handleGoogleSignIn} style={{ width: '100%', padding: '12px', fontSize: '14px', fontWeight: 'bold', color: '#555', backgroundColor: '#fff', border: '1px solid #ddd', borderRadius: '10px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
-              <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style={{ width: '18px' }} /> 使用 Google 繼續
+            
+            {/* 🚀 替換為 LINE 按鈕 */}
+            <button type="button" onClick={handleLineLogin} style={{ width: '100%', padding: '12px', fontSize: '15px', fontWeight: 'bold', color: '#fff', backgroundColor: '#06C755', border: 'none', borderRadius: '10px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" alt="LINE" style={{ width: '20px', filter: 'brightness(0) invert(1)' }} />
+              使用 LINE 一鍵登入
             </button>
+
             <p style={{ marginTop: '25px', fontSize: '14px', color: '#666' }}>
               {isLoginMode ? '還沒有帳號嗎？ ' : '已經有帳號了？ '}
               <span onClick={() => setIsLoginMode(!isLoginMode)} style={{ color: '#d81b60', fontWeight: 'bold', cursor: 'pointer' }}>{isLoginMode ? '立即註冊' : '點此登入'}</span>
@@ -469,7 +469,7 @@ export default function App() {
                   <div style={{...reportRowStyle, borderBottom: 'none'}}><div style={reportLabelStyle}>推動</div><div style={{...reportValueStyle, color: '#757575'}}>{fullHiddenName} (Kin {fullHiddenKin})</div></div>
                 </div>
 
-                {/* 🚀 新增：高階星際數據卡片 (內在女神) */}
+                {/* 🚀 高階星際數據卡片 (內在女神) */}
                 <div style={{...reportCardStyle, backgroundColor: '#fff8e1', borderColor: '#ffe082'}}>
                   <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#e65100', marginBottom: '15px' }}>高階星際數據</div>
                   <div style={reportRowStyle}>

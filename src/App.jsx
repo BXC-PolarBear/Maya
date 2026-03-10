@@ -253,7 +253,7 @@ export default function App() {
   };
 
   const getSealColor = (index) => {
-    const colors = ["#fbc02d", "#d32f2f", "#757575", "#1976d2"]; // 黃, 紅, 白, 藍
+    const colors = ["#fbc02d", "#d32f2f", "#757575", "#1976d2"]; 
     return colors[index % 4];
   };
 
@@ -502,7 +502,6 @@ export default function App() {
               )}
             </div>
 
-            {/* 🚀 已經將「登出」按鈕徹底拔除，只留下返回雲端庫功能 */}
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => setShowRecordsView(!showRecordsView)} style={{ padding: '6px 10px', fontSize: '12px', backgroundColor: showRecordsView ? '#d81b60' : '#fff', border: '1px solid #d81b60', color: showRecordsView ? '#fff' : '#d81b60', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
                 {showRecordsView ? '✕ 返回系統' : '📂 雲端紀錄庫'}
@@ -515,8 +514,9 @@ export default function App() {
               <button onClick={() => setActiveTab('query')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'query' ? '#ffebee' : 'transparent', color: activeTab === 'query' ? '#d81b60' : '#888', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s' }}>
                 🔍 13月亮曆查詢
               </button>
+              {/* 🚀 修改按鈕名稱為「今日宇宙能量」 */}
               <button onClick={() => setActiveTab('daily')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'daily' ? '#f3e5f5' : 'transparent', color: activeTab === 'daily' ? '#8e24aa' : '#888', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s' }}>
-                🌟 今日流日(AI測試版)
+                🌟 今日宇宙能量
               </button>
             </div>
           )}
@@ -652,8 +652,10 @@ export default function App() {
                 </div>
               </div>
 
+              {/* 🚀 新增：在此加入專屬 AI 分析標題 */}
               <div style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
-                <h4 style={{ margin: '0 0 15px 0', color: '#555', fontSize: '15px' }}>✨ 獲取專屬流日指引</h4>
+                <h3 style={{ margin: '0 0 15px 0', color: '#d81b60', fontSize: '16px', textAlign: 'center', fontWeight: 'bold', letterSpacing: '1px' }}>✨ 今日流日 (AI測試版) ✨</h3>
+                
                 <div style={{ display: 'flex', gap: '10px', width: '100%', alignItems: 'center' }}>
                   <select
                     value={selectedRecordId}

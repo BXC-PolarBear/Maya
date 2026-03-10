@@ -90,6 +90,12 @@ export default function App() {
   const [selectedRecordId, setSelectedRecordId] = useState('current'); 
 
   useEffect(() => {
+    let isMounted = true;
+    
+    const fallbackTimer = setTimeout(() => {
+      if (isMounted) setIsInitializing(false);
+    }, 3000);
+
     const initLiff = async () => {
       try {
         await liff.init({ liffId: '2009406742-2WUZO3mQ' });
@@ -115,16 +121,23 @@ export default function App() {
       } catch (err) {
         console.error("LIFF 初始化失敗", err);
       } finally {
-        setIsInitializing(false);
+        if (isMounted) setIsInitializing(false);
+        clearTimeout(fallbackTimer);
       }
     };
     initLiff();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(fallbackTimer);
+    };
   }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
+        setIsInitializing(false); 
         const savedName = localStorage.getItem(`maya_name_${currentUser.uid}`);
         const savedDate = localStorage.getItem(`maya_date_${currentUser.uid}`);
         if (savedName) setUserName(savedName);
@@ -247,9 +260,9 @@ export default function App() {
     return 260;
   };
 
-  // 🚀 負責動態返回該圖騰專屬顏色的引擎
+  // 🚀 關鍵修復：將顏色陣列的順序修正，0 (黃太陽) 對應黃色
   const getSealColor = (index) => {
-    const colors = ["#d32f2f", "#757575", "#1976d2", "#fbc02d"]; // 紅、白、藍、黃
+    const colors = ["#fbc02d", "#d32f2f", "#757575", "#1976d2"]; // 黃, 紅, 白, 藍
     return colors[index % 4];
   };
 
@@ -277,8 +290,22 @@ export default function App() {
   const todayDateString = getTodayString();
   const todayKinNumber = calculateKin(todayDateString);
   const todayToneNumber = ((todayKinNumber - 1) % 13) + 1;
-  const todayMainSeal = seals[todayKinNumber % 20];
+  const todayMainIndex = todayKinNumber % 20;
+  const todayMainSeal = seals[todayMainIndex];
   const todayToneName = toneNames[todayToneNumber - 1];
+
+  const todayBottomToneNumber = 14 - todayToneNumber;
+  const todayGuideIndex = getGuideIndex(todayMainIndex, todayToneNumber);
+  const todayChallengeIndex = (todayMainIndex + 10) % 20;
+  const todaySupportIndex = (39 - todayMainIndex) % 20;
+  const todayHiddenIndex = (21 - todayMainIndex) % 20;
+  const todayWavespellIndex = (todayMainIndex - (todayToneNumber - 1) + 260) % 20;
+
+  const tGuideSeal = seals[todayGuideIndex];
+  const tChallengeSeal = seals[todayChallengeIndex];
+  const tSupportSeal = seals[todaySupportIndex];
+  const tHiddenSeal = seals[todayHiddenIndex];
+  const tWavespellSeal = seals[todayWavespellIndex];
 
   const earthFamilyIndex = mainIndex % 5;
   const earthFamilyName = earthFamilies[earthFamilyIndex];
@@ -340,7 +367,6 @@ export default function App() {
     setSelectedRecordId('current'); 
   };
 
-  // 🚀 加入自動重試機制的 AI 分析引擎
   const handleGenerateGuidance = async () => {
     setIsAiLoading(true);
     setAiResponse('');
@@ -377,7 +403,6 @@ export default function App() {
 
       const apiKey = import.meta.env.VITE_GROQ_API_KEY;
       
-      // 🚀 自動重試邏輯 (嘗試 2 次，解決冷啟動失敗問題)
       let data = null;
       let lastError = null;
       
@@ -398,11 +423,10 @@ export default function App() {
           }
           
           data = await response.json();
-          break; // 成功取得資料，跳出迴圈
+          break; 
         } catch (error) {
           lastError = error;
-          // 如果是第一次失敗，稍微等待 0.5 秒後自動重試
-          if (i === 0) await new Promise(res => setTimeout(res, 500));
+          if (i === 0) await new Promise(res => setTimeout(res, 500)); 
         }
       }
 
@@ -410,7 +434,7 @@ export default function App() {
       
       setAiResponse(data.choices[0].message.content);
     } catch (error) {
-      setAiResponse(`【宇宙能量連線不穩】已為您重新校準，請再按一次「今日分析」按鈕！`);
+      setAiResponse(`【宇宙能量連線不穩】AI 正在甦醒中，請再按一次「今日分析」按鈕！`);
     } finally {
       setIsAiLoading(false);
     }
@@ -571,7 +595,6 @@ export default function App() {
                   <div style={{ gridArea: '3 / 2 / 4 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={hiddenSeal.img} alt="隱藏推動" style={{ width: '48px' }} /><span style={labelStyle}>隱藏推動：{hiddenSeal.name}</span></div>
                 </div>
 
-                {/* 🚀 修正：四神諭文字顏色動態對應 */}
                 <div style={reportCardStyle}>
                   <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#3949ab', marginBottom: '15px' }}>基礎能量配置</div>
                   <div style={reportRowStyle}><div style={reportLabelStyle}>13月亮曆</div><div style={{ ...reportValueStyle, color: '#3949ab' }}>{moonDateDisplay}</div></div>
@@ -580,7 +603,7 @@ export default function App() {
                   <div style={reportRowStyle}><div style={reportLabelStyle}>引導</div><div style={{...reportValueStyle, color: getSealColor(guideIndex)}}>{guideSeal.name}</div></div>
                   <div style={reportRowStyle}><div style={reportLabelStyle}>支持</div><div style={{...reportValueStyle, color: getSealColor(supportIndex)}}>{supportSeal.name}</div></div>
                   <div style={reportRowStyle}><div style={reportLabelStyle}>挑戰</div><div style={{...reportValueStyle, color: getSealColor(challengeIndex)}}>{challengeSeal.name}</div></div>
-                  <div style={{...reportRowStyle, borderBottom: 'none'}}><div style={reportLabelStyle}>推動</div><div style={{...reportValueStyle, color: getSealColor(fullHiddenKin % 20)}}>{fullHiddenName} (Kin {fullHiddenKin})</div></div>
+                  <div style={{...reportRowStyle, borderBottom: 'none'}}><div style={reportLabelStyle}>推動</div><div style={{...reportValueStyle, color: getSealColor(hiddenIndex)}}>{fullHiddenName} (Kin {fullHiddenKin})</div></div>
                 </div>
 
                 <div style={{...reportCardStyle, backgroundColor: '#fff8e1', borderColor: '#ffe082'}}>
@@ -621,14 +644,21 @@ export default function App() {
           ) : (
             <div style={{ width: '100%', maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
               
-              <div style={{ backgroundColor: '#ffffff', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', padding: '30px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{ fontSize: '14px', color: '#666', marginBottom: '10px' }}>今日宇宙能量 ({getTodayString()})</div>
-                <div style={{ fontSize: '32px', fontWeight: '900', color: '#4a148c', marginBottom: '10px' }}>KIN {todayKinNumber}</div>
-                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#7b1fa2', marginBottom: '20px' }}>
+              <div style={{ backgroundColor: '#ffffff', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', padding: '25px 15px', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
+                <div style={{ fontSize: '14px', color: '#666', marginBottom: '5px' }}>今日宇宙能量 ({getTodayString()})</div>
+                <div style={{ fontSize: '28px', fontWeight: '900', color: '#4a148c', marginBottom: '5px' }}>KIN {todayKinNumber}</div>
+                <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#7b1fa2', marginBottom: '20px' }}>
                   {todayToneName}的{todayMainSeal.name}
                 </div>
-                <img src={todayMainSeal.img} alt={todayMainSeal.name} style={{ width: '90px', marginBottom: '15px' }} />
-                <img src={`/tone_${todayToneNumber}.png`} alt={`調性 ${todayToneNumber}`} style={{ height: '18px', objectFit: 'contain' }} />
+
+                <div style={{ position: 'relative', border: '2px solid #f3e5f5', borderRadius: '20px', padding: '20px', backgroundColor: '#fafafa', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, auto)', gap: '10px', alignItems: 'center', justifyItems: 'center', width: '100%', boxSizing: 'border-box' }}>
+                  <div style={{ gridArea: '1 / 1 / 2 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={tWavespellSeal.img} alt="波符" style={{ width: '28px' }} /><span style={{...labelStyle, fontSize: '10px'}}>波符：{tWavespellSeal.name}</span></div>
+                  <div style={{ gridArea: '1 / 2 / 2 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={tGuideSeal.img} alt="引導" style={{ width: '42px' }} /><span style={{...labelStyle, fontSize: '10px'}}>引導：{tGuideSeal.name}</span></div>
+                  <div style={{ gridArea: '2 / 1 / 3 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={tChallengeSeal.img} alt="挑戰" style={{ width: '42px' }} /><span style={{...labelStyle, fontSize: '10px'}}>挑戰：{tChallengeSeal.name}</span></div>
+                  <div style={{ gridArea: '2 / 2 / 3 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={`/tone_${todayToneNumber}.png`} alt={`調性 ${todayToneNumber}`} style={{ height: '10px', marginBottom: '4px', objectFit: 'contain' }} /><img src={todayMainSeal.img} alt="主印記" style={{ width: '64px' }} /><img src={`/tone_${todayBottomToneNumber}.png`} alt={`推動調性 ${todayBottomToneNumber}`} style={{ height: '10px', marginTop: '4px', objectFit: 'contain' }} /><span style={{...labelStyle, fontSize: '10px'}}>{todayMainSeal.name}</span></div>
+                  <div style={{ gridArea: '2 / 3 / 3 / 4', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={tSupportSeal.img} alt="支持" style={{ width: '42px' }} /><span style={{...labelStyle, fontSize: '10px'}}>支持：{tSupportSeal.name}</span></div>
+                  <div style={{ gridArea: '3 / 2 / 4 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={tHiddenSeal.img} alt="隱藏推動" style={{ width: '42px' }} /><span style={{...labelStyle, fontSize: '10px'}}>隱藏推動：{tHiddenSeal.name}</span></div>
+                </div>
               </div>
 
               <div style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>

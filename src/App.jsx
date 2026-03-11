@@ -54,6 +54,7 @@ const advancedMatrixData = {
 const plasmasBMU = [108, 291, 144, 315, 414, 402, 441]; 
 const archetypeBMUs = [414, 108, 144, 126, 90, 288, 294, 291, 300, 306, 303, 312, 318, 315, 276, 282, 279, 396, 402, 408]; 
 
+// ✨ 全域 Helper 函數
 const getGuideIndex = (main, tone) => {
   const shifts = { 1: 0, 6: 0, 11: 0, 2: 12, 7: 12, 12: 12, 3: 4, 8: 4, 13: 4, 4: 16, 9: 16, 5: 8, 10: 8 };
   return (main + shifts[tone]) % 20;
@@ -74,6 +75,7 @@ const getAdvancedKinDetails = (calculatedKin) => {
   return { kin: calculatedKin, name, color };
 };
 
+// ✨ 取得五大神諭詳細圖騰資料的引擎
 const getOracleDetails = (kin) => {
   if (!kin || isNaN(kin)) return null; 
   const tone = ((kin - 1) % 13) + 1;
@@ -173,10 +175,10 @@ export default function App() {
   const [showBasicConfig, setShowBasicConfig] = useState(true);
   const [showAdvancedData, setShowAdvancedData] = useState(true);
 
-  // 🚀 URL 參數跳轉
+  // 🚀 URL 參數跳轉 (修正 new URLSearchParams 筆誤)
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const urlParams = newSearchParams(window.location.search);
+      const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('tab') === 'daily') setActiveTab('daily');
     }
   }, []);
@@ -248,12 +250,10 @@ export default function App() {
              const safeName = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : "旅人");
              await setDoc(userRef, { email: currentUser.email || "", displayName: safeName, isAdmin: false, createdAt: Date.now() }, { merge: true });
           } else {
-             // 🛡️ 寬容判斷：不論後台寫的是布林值 true 還是字串 "true"，都判定為管理員
              const dbData = userSnap.data();
              const adminStatus = dbData.isAdmin === true || String(dbData.isAdmin).toLowerCase() === 'true';
              updateAdminState(adminStatus);
              
-             // ✨ 自動修復：當老會員登入時，自動補足建立時間
              if (!dbData.createdAt && currentUser.metadata && currentUser.metadata.creationTime) {
                  await setDoc(userRef, { createdAt: new Date(currentUser.metadata.creationTime).getTime() }, { merge: true });
              }

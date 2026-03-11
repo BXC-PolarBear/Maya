@@ -54,7 +54,6 @@ const advancedMatrixData = {
 const plasmasBMU = [108, 291, 144, 315, 414, 402, 441]; 
 const archetypeBMUs = [414, 108, 144, 126, 90, 288, 294, 291, 300, 306, 303, 312, 318, 315, 276, 282, 279, 396, 402, 408]; 
 
-// ✨ 全域 Helper 函數
 const getGuideIndex = (main, tone) => {
   const shifts = { 1: 0, 6: 0, 11: 0, 2: 12, 7: 12, 12: 12, 3: 4, 8: 4, 13: 4, 4: 16, 9: 16, 5: 8, 10: 8 };
   return (main + shifts[tone]) % 20;
@@ -75,7 +74,6 @@ const getAdvancedKinDetails = (calculatedKin) => {
   return { kin: calculatedKin, name, color };
 };
 
-// ✨ 取得五大神諭詳細圖騰資料的引擎
 const getOracleDetails = (kin) => {
   if (!kin || isNaN(kin)) return null; 
   const tone = ((kin - 1) % 13) + 1;
@@ -236,7 +234,6 @@ export default function App() {
         const savedName = localStorage.getItem(`maya_name_${currentUser.uid}`);
         const savedDate = localStorage.getItem(`maya_date_${currentUser.uid}`);
         
-        // 💡 智慧代入姓名
         if (savedName) setUserName(savedName);
         else if (currentUser.displayName) setUserName(currentUser.displayName);
         else if (currentUser.email) setUserName(currentUser.email.split('@')[0]);
@@ -259,18 +256,8 @@ export default function App() {
              }
           }
 
-          // 🚀 升級管理員參數偵測 (?level=admin)
-          const urlParams = new URLSearchParams(window.location.search);
-          if (urlParams.get('level') === 'admin') {
-              try {
-                await setDoc(userRef, { isAdmin: true }, { merge: true });
-                updateAdminState(true);
-                alert('🎉 已成功升級為系統管理員！');
-                window.history.replaceState({}, document.title, window.location.pathname);
-              } catch (err) {
-                alert('⚠️ 升級失敗：請檢查 Firebase Firestore 的 Security Rules 是否開放讀寫！');
-              }
-          }
+          // ⚠️ 【過河拆橋】已經把 ?level=admin 捷徑移除！
+          // 從現在起，只有直接在 Firebase 後台把 isAdmin 設為 true 才能成為管理員，確保系統 100% 安全。
 
           const recordsRef = collection(db, "users", currentUser.uid, "records");
           const snapshot = await getDocs(recordsRef);
@@ -789,7 +776,7 @@ export default function App() {
                   <div style={{ gridArea: '1 / 1 / 2 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={wavespellSeal.img} alt="波符" style={{ width: '32px' }} /><span style={labelStyle}>波符：{wavespellSeal.name}</span></div>
                   <div style={{ gridArea: '1 / 2 / 2 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={guideSeal.img} alt="引導" style={{ width: '48px' }} /><span style={labelStyle}>引導：{guideSeal.name}</span></div>
                   <div style={{ gridArea: '2 / 1 / 3 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={challengeSeal.img} alt="挑戰" style={{ width: '48px' }} /><span style={labelStyle}>挑戰：{challengeSeal.name}</span></div>
-                  <div style={{ gridArea: '2 / 2 / 3 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={`/tone_${toneNumber}.png`} alt={`調性 ${toneNumber}`} style={{ height: '12px', marginBottom: '6px', objectFit: 'contain' }} /><img src={mainSeal.img} alt="主印記" style={{ width: '72px' }} /><img src={`/tone_${bottomToneNumber}.png`} alt={`推動調性 ${bottomToneNumber}`} style={{ height: '12px', marginTop: '6px', objectFit: 'contain' }} /><span style={labelStyle}>{mainSeal.name}</span></div>
+                  <div style={{ gridArea: '2 / 2 / 3 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={`/tone_${toneNumber}.png`} alt={`調性 ${toneNumber}`} style={{ height: '12px', marginBottom: '6px', objectFit: 'contain' }} /><img src={mainSeal.img} alt="主印記" style={{ width: '72px' }} /><img src={`/tone_${bottomToneNumber}.png`} alt={`推推調性 ${bottomToneNumber}`} style={{ height: '12px', marginTop: '6px', objectFit: 'contain' }} /><span style={labelStyle}>{mainSeal.name}</span></div>
                   <div style={{ gridArea: '2 / 3 / 3 / 4', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={supportSeal.img} alt="支持" style={{ width: '48px' }} /><span style={labelStyle}>支持：{supportSeal.name}</span></div>
                   <div style={{ gridArea: '3 / 2 / 4 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={hiddenSeal.img} alt="隱藏推動" style={{ width: '48px' }} /><span style={labelStyle}>隱藏推動：{hiddenSeal.name}</span></div>
                 </div>

@@ -75,6 +75,7 @@ const getAdvancedKinDetails = (calculatedKin) => {
   return { kin: calculatedKin, name, color };
 };
 
+// ✨ 取得五大神諭詳細圖騰資料的引擎
 const getOracleDetails = (kin) => {
   if (!kin || isNaN(kin)) return null; 
   const tone = ((kin - 1) % 13) + 1;
@@ -159,9 +160,10 @@ export default function App() {
   
   // ✨ 後台與名單狀態
   const [savedRecords, setSavedRecords] = useState([]);
+  const [recordsLoaded, setRecordsLoaded] = useState(false); // ✨ 新增：確認雲端資料是否已載入完畢，防暴衝！
   const [showRecordsView, setShowRecordsView] = useState(false);
   
-  // 🌟 從 localStorage 初始化 isAdmin，防止重整時按鈕消失閃爍
+  // 🌟 從 localStorage 初始化 isAdmin
   const [isAdmin, setIsAdmin] = useState(localStorage.getItem('bxc_admin') === 'true');
   const [showAdminView, setShowAdminView] = useState(false);
   const [allUsersList, setAllUsersList] = useState([]);
@@ -182,7 +184,6 @@ export default function App() {
     }
   }, []);
 
-  // 安全更新管理員狀態的 Helper
   const updateAdminState = (status) => {
     setIsAdmin(status);
     if (status) localStorage.setItem('bxc_admin', 'true');
@@ -236,7 +237,7 @@ export default function App() {
         const savedName = localStorage.getItem(`maya_name_${currentUser.uid}`);
         const savedDate = localStorage.getItem(`maya_date_${currentUser.uid}`);
         
-        // 💡 智慧代入姓名：如果沒有舊紀錄，自動拿 LINE 名字或 Email 帳號當作預設姓名
+        // 💡 智慧代入姓名
         if (savedName) setUserName(savedName);
         else if (currentUser.displayName) setUserName(currentUser.displayName);
         else if (currentUser.email) setUserName(currentUser.email.split('@')[0]);
@@ -272,9 +273,13 @@ export default function App() {
           const cloudRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           cloudRecords.sort((a, b) => b.timestamp - a.timestamp);
           setSavedRecords(cloudRecords);
-        } catch (error) {}
+          setRecordsLoaded(true); // ✨ 雲端紀錄載入完畢，解除防暴衝鎖定
+        } catch (error) {
+          setRecordsLoaded(true); // 即使失敗也要解除鎖定，避免系統卡死
+        }
       } else {
         setSavedRecords([]); 
+        setRecordsLoaded(false); // ✨ 登出時重置標記
         updateAdminState(false);
       }
     });
@@ -288,17 +293,16 @@ export default function App() {
     }
   }, [userName, date, user, adminViewingRecord]);
 
-  // 🚀✨ 智慧建檔機制：如果是新會員第一次改變日期，系統無感自動儲存！
+  // 🚀✨ 智慧建檔機制防暴衝版：只有在「確認雲端已載入完畢(recordsLoaded)」且「真的沒紀錄(length===0)」時，才執行自動儲存！
   const autoSaveTriggered = useRef(false);
   useEffect(() => {
-    if (user && savedRecords.length === 0 && !autoSaveTriggered.current) {
-      // 只要他有姓名，而且日期不是今天 (代表他選了自己的生日)
+    if (user && recordsLoaded && savedRecords.length === 0 && !autoSaveTriggered.current) {
       if (userName && date !== getTodayString()) {
         autoSaveTriggered.current = true;
         handleSaveRecord(true); // silent = true (不跳通知)
       }
     }
-  }, [date, userName, user, savedRecords.length]);
+  }, [date, userName, user, recordsLoaded, savedRecords.length]);
 
   // 🚀 管理員專屬功能
   const fetchAllUsers = async () => {
@@ -306,7 +310,6 @@ export default function App() {
       const querySnapshot = await getDocs(collection(db, "users"));
       const users = [];
       querySnapshot.forEach((d) => { users.push({ id: d.id, ...d.data() }); });
-      // 依照加入日期排序 (新 -> 舊)
       users.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       setAllUsersList(users);
     } catch(e) {
@@ -414,7 +417,7 @@ export default function App() {
   const goddessKinNum = (kinNumber + guideKinNum + supportKinNum + challengeKinNum + hiddenKinNum) % 260 || 260;
   const goddessKinDetails = getAdvancedKinDetails(goddessKinNum);
 
-  // 🚀✨ 完全解鎖 441 矩陣計算 (包含正確的 MCF 與 HK21 演算法)
+  // 🚀✨ 完全解鎖 441 矩陣計算
   let eqKinNum = null; let eqKinDetails = { name: "🔒 待解鎖", color: "#aaa" };
   let hk21KinNum = null; let hk21Details = { name: "🔒 待解鎖", color: "#aaa" };
 
@@ -444,7 +447,6 @@ export default function App() {
     const c2 = getSpaceCoordinate(kinNumber);
     const c3 = getSynchronicCoordinate(kinNumber);
 
-    // 🌟 解鎖 對等 KIN (MCF 疊加)
     const val1 = timeMatrix[c1.r][c1.c] + spaceMatrix[c1.r][c1.c] + synchronicMatrix[c1.r][c1.c];
     const val2 = timeMatrix[c2.r][c2.c] + spaceMatrix[c2.r][c2.c] + synchronicMatrix[c2.r][c2.c];
     const val3 = timeMatrix[c3.r][c3.c] + spaceMatrix[c3.r][c3.c] + synchronicMatrix[c3.r][c3.c];
@@ -452,7 +454,6 @@ export default function App() {
     eqKinNum = mcf % 260 || 260;
     eqKinDetails = getAdvancedKinDetails(eqKinNum);
 
-    // 🌟 解鎖 HK21 對等 (五神諭 Archetype BMU + 當日 Plasma BMU)
     const plasmaIndex = (moonInfo.day - 1) % 7;
     const plasmaBMU = plasmasBMU[plasmaIndex];
     const hk21Sum = archetypeBMUs[mainIndex] + archetypeBMUs[guideIndex] + archetypeBMUs[supportIndex] + archetypeBMUs[challengeIndex] + archetypeBMUs[hiddenIndex] + plasmaBMU;
@@ -495,11 +496,10 @@ export default function App() {
   const dateParts = date ? date.split('-') : getTodayString().split('-');
   const formattedDate = dateParts.length === 3 ? `${dateParts[0]}/${parseInt(dateParts[1], 10)}/${parseInt(dateParts[2], 10)}` : '';
 
-  // 🚀 加上 isSilent 參數的儲存機制
   const handleSaveRecord = async (isSilent = false) => {
     const silent = isSilent === true;
     if (!userName.trim() && !silent) return alert("請先在上方輸入「姓名」才能儲存喔！");
-    if (!userName.trim() && silent) return; // 沒名字就不自動存
+    if (!userName.trim() && silent) return; 
     if (!user) {
        if(!silent) alert("請先登入才能使用雲端儲存功能！");
        return;
@@ -611,7 +611,6 @@ export default function App() {
       ) : (
         <div style={{ padding: '15px', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           
-          {/* 頂部選單 */}
           <div style={{ width: '100%', maxWidth: '380px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', padding: '0 5px', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               {lineProfile ? (
@@ -639,7 +638,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* 頁籤按鈕 (不在管理/紀錄模式才顯示) */}
           {!showRecordsView && !showAdminView && (
             <div style={{ display: 'flex', width: '100%', maxWidth: '380px', marginBottom: '15px', backgroundColor: '#fff', borderRadius: '12px', padding: '5px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
               <button onClick={() => setActiveTab('query')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'query' ? '#ffebee' : 'transparent', color: activeTab === 'query' ? '#d81b60' : '#888', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s' }}>
@@ -651,7 +649,6 @@ export default function App() {
             </div>
           )}
 
-          {/* 嚴謹的條件渲染切換 */}
           {showAdminView ? (
             <div style={{ width: '100%', maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <h3 style={{ color: '#1e3a8a', margin: '0 0 10px 0', textAlign: 'center', letterSpacing: '1px' }}>⚙️ 系統管理後台</h3>

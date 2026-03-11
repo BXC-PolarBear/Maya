@@ -5,7 +5,6 @@ import './App.css';
 import liff from '@line/liff';
 import { auth, db } from './firebase'; 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
-// ✨ 引入管理員所需 Firestore 函式
 import { collection, doc, setDoc, getDocs, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
 
 // 🚀 匯入您辛苦建置的 441 矩陣資料庫
@@ -54,6 +53,7 @@ const advancedMatrixData = {
 const plasmasBMU = [108, 291, 144, 315, 414, 402, 441]; 
 const archetypeBMUs = [414, 108, 144, 126, 90, 288, 294, 291, 300, 306, 303, 312, 318, 315, 276, 282, 279, 396, 402, 408]; 
 
+// ✨ 全域 Helper 函數
 const getGuideIndex = (main, tone) => {
   const shifts = { 1: 0, 6: 0, 11: 0, 2: 12, 7: 12, 12: 12, 3: 4, 8: 4, 13: 4, 4: 16, 9: 16, 5: 8, 10: 8 };
   return (main + shifts[tone]) % 20;
@@ -74,6 +74,7 @@ const getAdvancedKinDetails = (calculatedKin) => {
   return { kin: calculatedKin, name, color };
 };
 
+// ✨ 取得五大神諭詳細圖騰資料的引擎
 const getOracleDetails = (kin) => {
   if (!kin || isNaN(kin)) return null; 
   const tone = ((kin - 1) % 13) + 1;
@@ -92,10 +93,17 @@ const getOracleDetails = (kin) => {
   };
 };
 
-const formatDateString = (ts) => {
-  if (!ts) return '未知';
-  const d = new Date(ts);
-  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+// ✨ 處理舊會員的智慧日期顯示
+const formatJoinDate = (u) => {
+  if (u.createdAt) {
+    const d = new Date(u.createdAt);
+    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+  }
+  if (u.updatedAt) {
+    const d = new Date(u.updatedAt);
+    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')} (最後活動)`;
+  }
+  return '🌟 早期創始會員';
 };
 
 // 🌟 絕美迷你神諭卡元件
@@ -156,7 +164,6 @@ export default function App() {
   const [aiResponse, setAiResponse] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   
-  // ✨ 後台與名單狀態
   const [savedRecords, setSavedRecords] = useState([]);
   const [recordsLoaded, setRecordsLoaded] = useState(false); 
   const [showRecordsView, setShowRecordsView] = useState(false);
@@ -173,7 +180,6 @@ export default function App() {
   const [showBasicConfig, setShowBasicConfig] = useState(true);
   const [showAdvancedData, setShowAdvancedData] = useState(true);
 
-  // 🚀 URL 參數跳轉
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
@@ -250,14 +256,13 @@ export default function App() {
           } else {
              updateAdminState(userSnap.data().isAdmin === true);
              
-             // 🚀 【完美修復】自動幫老會員把底層註冊時間補回來！
+             // ✨ 自動修復：當老會員登入時，自動補足建立時間
              if (!userSnap.data().createdAt && currentUser.metadata && currentUser.metadata.creationTime) {
                  await setDoc(userRef, { createdAt: new Date(currentUser.metadata.creationTime).getTime() }, { merge: true });
              }
           }
 
-          // ⚠️ 【過河拆橋】已經把 ?level=admin 捷徑移除！
-          // 從現在起，只有直接在 Firebase 後台把 isAdmin 設為 true 才能成為管理員，確保系統 100% 安全。
+          // ✨ 已經徹底拔除 ?level=admin 網址升級功能，保障系統安全
 
           const recordsRef = collection(db, "users", currentUser.uid, "records");
           const snapshot = await getDocs(recordsRef);
@@ -284,18 +289,16 @@ export default function App() {
     }
   }, [userName, date, user, adminViewingRecord]);
 
-  // 🚀✨ 智慧建檔機制防暴衝版
   const autoSaveTriggered = useRef(false);
   useEffect(() => {
     if (user && recordsLoaded && savedRecords.length === 0 && !autoSaveTriggered.current) {
       if (userName && date !== getTodayString()) {
         autoSaveTriggered.current = true;
-        handleSaveRecord(true); // silent = true (不跳通知)
+        handleSaveRecord(true); 
       }
     }
   }, [date, userName, user, recordsLoaded, savedRecords.length]);
 
-  // 🚀 管理員專屬功能
   const fetchAllUsers = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "users"));
@@ -339,7 +342,6 @@ export default function App() {
 
   const handleLineLogin = () => { if (!liff.isLoggedIn()) liff.login(); };
 
-  // 🛡️ 日期防呆解析
   const get13MoonDateInfo = (inputDate) => {
     if (!inputDate || inputDate.trim() === '') return { display: "未知日期", key: "0-0", moon: 0, day: 0 };
     const dateObj = new Date(inputDate + 'T00:00:00Z');
@@ -408,7 +410,6 @@ export default function App() {
   const goddessKinNum = (kinNumber + guideKinNum + supportKinNum + challengeKinNum + hiddenKinNum) % 260 || 260;
   const goddessKinDetails = getAdvancedKinDetails(goddessKinNum);
 
-  // 🚀✨ 完全解鎖 441 矩陣計算
   let eqKinNum = null; let eqKinDetails = { name: "🔒 待解鎖", color: "#aaa" };
   let hk21KinNum = null; let hk21Details = { name: "🔒 待解鎖", color: "#aaa" };
 
@@ -659,7 +660,7 @@ export default function App() {
                             {u.isAdmin && <span style={{ marginLeft: '6px', fontSize: '10px', background: '#fce4ec', color: '#d81b60', padding: '2px 6px', borderRadius: '10px' }}>管理員</span>}
                           </span>
                           <span style={{ fontSize: '11px', color: '#888' }}>{u.email}</span>
-                          <span style={{ fontSize: '11px', color: '#888' }}>加入日期: {formatDateString(u.createdAt)}</span>
+                          <span style={{ fontSize: '11px', color: '#888', fontWeight: 'bold', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', alignSelf: 'flex-start' }}>加入日期: {formatJoinDate(u)}</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           <button onClick={() => loadUserRecords(u)} style={{ background: '#e0f2fe', color: '#0284c7', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>查看紀錄</button>
@@ -776,7 +777,7 @@ export default function App() {
                   <div style={{ gridArea: '1 / 1 / 2 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={wavespellSeal.img} alt="波符" style={{ width: '32px' }} /><span style={labelStyle}>波符：{wavespellSeal.name}</span></div>
                   <div style={{ gridArea: '1 / 2 / 2 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={guideSeal.img} alt="引導" style={{ width: '48px' }} /><span style={labelStyle}>引導：{guideSeal.name}</span></div>
                   <div style={{ gridArea: '2 / 1 / 3 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={challengeSeal.img} alt="挑戰" style={{ width: '48px' }} /><span style={labelStyle}>挑戰：{challengeSeal.name}</span></div>
-                  <div style={{ gridArea: '2 / 2 / 3 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={`/tone_${toneNumber}.png`} alt={`調性 ${toneNumber}`} style={{ height: '12px', marginBottom: '6px', objectFit: 'contain' }} /><img src={mainSeal.img} alt="主印記" style={{ width: '72px' }} /><img src={`/tone_${bottomToneNumber}.png`} alt={`推推調性 ${bottomToneNumber}`} style={{ height: '12px', marginTop: '6px', objectFit: 'contain' }} /><span style={labelStyle}>{mainSeal.name}</span></div>
+                  <div style={{ gridArea: '2 / 2 / 3 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={`/tone_${toneNumber}.png`} alt={`調性 ${toneNumber}`} style={{ height: '12px', marginBottom: '6px', objectFit: 'contain' }} /><img src={mainSeal.img} alt="主印記" style={{ width: '72px' }} /><img src={`/tone_${bottomToneNumber}.png`} alt={`推動調性 ${bottomToneNumber}`} style={{ height: '12px', marginTop: '6px', objectFit: 'contain' }} /><span style={labelStyle}>{mainSeal.name}</span></div>
                   <div style={{ gridArea: '2 / 3 / 3 / 4', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={supportSeal.img} alt="支持" style={{ width: '48px' }} /><span style={labelStyle}>支持：{supportSeal.name}</span></div>
                   <div style={{ gridArea: '3 / 2 / 4 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={hiddenSeal.img} alt="隱藏推動" style={{ width: '48px' }} /><span style={labelStyle}>隱藏推動：{hiddenSeal.name}</span></div>
                 </div>

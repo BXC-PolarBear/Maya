@@ -5,7 +5,6 @@ import './App.css';
 import liff from '@line/liff';
 import { auth, db } from './firebase'; 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
-// ✨ 引入管理員所需 Firestore 函式
 import { collection, doc, setDoc, getDocs, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
 
 // 🚀 匯入您辛苦建置的 441 矩陣資料庫
@@ -93,7 +92,6 @@ const getOracleDetails = (kin) => {
   };
 };
 
-// 🛡️ 金鐘罩防護：安全取得會員名稱，絕對不讓系統崩潰
 const getSafeName = (userObj) => {
   if (!userObj) return "會員";
   if (userObj.displayName) return userObj.displayName;
@@ -279,17 +277,7 @@ export default function App() {
              }
           }
 
-          const urlParams = new URLSearchParams(window.location.search);
-          if (urlParams.get('bxc_key') === 'admin2026') {
-              try {
-                await setDoc(userRef, { isAdmin: true }, { merge: true });
-                updateAdminState(true);
-                alert('🎉 老闆專屬密碼正確！已成功開通管理員權限！');
-                window.history.replaceState({}, document.title, window.location.pathname);
-              } catch (err) {
-                alert('⚠️ 升級失敗：' + err.message);
-              }
-          }
+          // ⚠️ 【升級捷徑已完全移除】系統從此再無密碼後門，只能從 Firebase 手動打勾升級
 
           const recordsRef = collection(db, "users", currentUser.uid, "records");
           const snapshot = await getDocs(recordsRef);

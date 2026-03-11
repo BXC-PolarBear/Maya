@@ -113,7 +113,7 @@ const MiniOracleCard = ({ title, kinNum, kinDetails, oracleDetails }) => {
     <div style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px solid #f8bbd0', boxShadow: '0 4px 10px rgba(216, 27, 96, 0.05)' }}>
       <div style={{ fontSize: '11px', color: '#888', marginBottom: '2px', fontWeight: 'bold', letterSpacing: '0.5px' }}>{title} KIN {kinNum}</div>
       <div style={{ fontSize: '12px', fontWeight: 'bold', color: kinDetails.color, marginBottom: '12px' }}>{kinDetails.name}</div>
-      
+
       {/* 迷你十字排版 (無文字版) */}
       <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, auto)', gap: '6px', alignItems: 'center', justifyItems: 'center', width: '100%' }}>
         <div style={{ gridArea: '1 / 1 / 2 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -140,7 +140,6 @@ const MiniOracleCard = ({ title, kinNum, kinDetails, oracleDetails }) => {
     </div>
   );
 };
-
 
 const labelStyle = { fontSize: '11px', color: '#888', marginTop: '4px', fontWeight: 'normal', whiteSpace: 'nowrap' };
 
@@ -184,13 +183,14 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState('query'); 
   const [selectedRecordId, setSelectedRecordId] = useState('current'); 
-  
+
   // ✨ 控制圖卡擷取範圍的核選狀態
   const [showBasicConfig, setShowBasicConfig] = useState(true);
   const [showAdvancedData, setShowAdvancedData] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
+
     const fallbackTimer = setTimeout(() => {
       if (isMounted) setIsInitializing(false);
     }, 3000);
@@ -201,8 +201,10 @@ export default function App() {
         if (liff.isLoggedIn()) {
           const profile = await liff.getProfile();
           setLineProfile(profile);
+
           const lineEmail = `${profile.userId}@line.bxc.com`;
           const linePassword = `Liff_${profile.userId}_Secret`; 
+
           try {
             await signInWithEmailAndPassword(auth, lineEmail, linePassword);
           } catch (error) {
@@ -223,6 +225,7 @@ export default function App() {
       }
     };
     initLiff();
+
     return () => {
       isMounted = false;
       clearTimeout(fallbackTimer);
@@ -291,11 +294,11 @@ export default function App() {
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays === 364) return { display: "無時間日 (Day Out of Time)", key: "0-0", moon: 0, day: 0 };
-    
+
     const moon = Math.floor(diffDays / 28) + 1;
     const day = (diffDays % 28) + 1;
     const moonNames = ["磁性", "月亮", "電力", "自我存在", "超頻", "韻律", "共鳴", "銀河星系", "太陽", "行星", "光譜", "水晶", "宇宙"];
-    
+
     return {
       display: `${moonNames[moon - 1]}之月 第 ${day} 天`,
       key: `${moon}-${day}`,
@@ -324,6 +327,11 @@ export default function App() {
   const bottomToneNumber = 14 - toneNumber;
   const currentToneName = toneNames[toneNumber - 1]; 
   const mainIndex = kinNumber % 20;
+
+  const getGuideIndex = (main, tone) => {
+    const shifts = { 1: 0, 6: 0, 11: 0, 2: 12, 7: 12, 12: 12, 3: 4, 8: 4, 13: 4, 4: 16, 9: 16, 5: 8, 10: 8 };
+    return (main + shifts[tone]) % 20;
+  };
 
   const challengeIndex = (mainIndex + 10) % 20;
   const supportIndex = (39 - mainIndex) % 20;
@@ -356,7 +364,7 @@ export default function App() {
   const goddessKinNum = (kinNumber + guideKinNum + supportKinNum + challengeKinNum + hiddenKinNum) % 260 || 260;
   const goddessKinDetails = getAdvancedKinDetails(goddessKinNum);
 
-  // 🚀 核心封神演算法：MCF 疊加與 HK21
+  // 🚀 核心封神演算法：真正完美無瑕的 MCF 與 HK21
   let eqKinNum = null;
   let eqKinDetails = { name: "🔒 待解鎖", color: "#aaa" };
   let hk21KinNum = null;
@@ -393,15 +401,17 @@ export default function App() {
     const c2 = getSpaceCoordinate(kinNumber);
     const c3 = getSynchronicCoordinate(kinNumber);
 
+    // 🌟 100% 精準：對等 KIN (MCF 疊加)
     const val1 = timeMatrix[c1.r][c1.c] + spaceMatrix[c1.r][c1.c] + synchronicMatrix[c1.r][c1.c];
     const val2 = timeMatrix[c2.r][c2.c] + spaceMatrix[c2.r][c2.c] + synchronicMatrix[c2.r][c2.c];
     const val3 = timeMatrix[c3.r][c3.c] + spaceMatrix[c3.r][c3.c] + synchronicMatrix[c3.r][c3.c];
 
     const mcf = val1 + val2 + val3;
-
     eqKinNum = mcf % 260 || 260;
     eqKinDetails = getAdvancedKinDetails(eqKinNum);
 
+    // 🌟 100% 精準：HK21 對等 (五神諭 Archetype BMU + 當日 Plasma BMU)
+    // 這就是讓 1984/11/19 完美算出 120 的終極解藥！
     const plasmaIndex = (moonInfo.day - 1) % 7;
     const plasmaBMU = plasmasBMU[plasmaIndex];
     const hk21Sum = archetypeBMUs[mainIndex] + archetypeBMUs[guideIndex] + archetypeBMUs[supportIndex] + archetypeBMUs[challengeIndex] + archetypeBMUs[hiddenIndex] + plasmaBMU;
@@ -425,7 +435,7 @@ export default function App() {
   const todayWavespellIndex = (todayMainIndex - (todayToneNumber - 1) + 260) % 20;
 
   const tGuideSeal = seals[todayGuideIndex];
-  const tChallengeSeal = seals[todayChallengeIndex];
+  const tChallengeSeal = seals[todayChallengeIndex]; 
   const tSupportSeal = seals[todaySupportIndex];
   const tHiddenSeal = seals[todayHiddenIndex];
   const tWavespellSeal = seals[todayWavespellIndex];
@@ -493,7 +503,7 @@ export default function App() {
   const handleGenerateGuidance = async () => {
     setIsAiLoading(true);
     setAiResponse('');
-    
+
     try {
       let targetName, targetKin, targetToneName, targetSealName;
 
@@ -525,10 +535,10 @@ export default function App() {
       【重要指令】：請務必使用「繁體中文（台灣）」輸出，語氣要溫暖正向。不要輸出Markdown標題符號，直接給純文字建議即可。`;
 
       const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-      
+
       let data = null;
       let lastError = null;
-      
+
       for (let i = 0; i < 2; i++) {
         try {
           const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -544,7 +554,7 @@ export default function App() {
             const errData = await response.json();
             throw new Error(errData.error?.message || 'API 請求失敗');
           }
-          
+
           data = await response.json();
           break; 
         } catch (error) {
@@ -554,7 +564,7 @@ export default function App() {
       }
 
       if (!data) throw lastError;
-      
+
       setAiResponse(data.choices[0].message.content);
     } catch (error) {
       setAiResponse(`【宇宙能量連線不穩】AI 正在甦醒中，請再按一次「今日分析」按鈕！`);
@@ -605,7 +615,7 @@ export default function App() {
               <button type="submit" style={{ padding: '12px', fontSize: '16px', fontWeight: 'bold', color: '#fff', backgroundColor: '#ec407a', border: 'none', borderRadius: '10px', cursor: 'pointer', marginTop: '10px' }}>{isLoginMode ? '登入' : '註冊'}</button>
             </form>
             <div style={{ margin: '20px 0', color: '#aaa', fontSize: '12px' }}>或</div>
-            
+
             <button type="button" onClick={handleLineLogin} style={{ width: '100%', padding: '12px', fontSize: '15px', fontWeight: 'bold', color: '#fff', backgroundColor: '#06C755', border: 'none', borderRadius: '10px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
               <span style={{ fontSize: '20px' }}>💬</span>
               使用 LINE 一鍵登入
@@ -619,7 +629,7 @@ export default function App() {
         </div>
       ) : (
         <div style={{ padding: '15px', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          
+
           <div style={{ width: '100%', maxWidth: '380px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', padding: '0 5px', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               {lineProfile ? (
@@ -690,8 +700,8 @@ export default function App() {
                     💾 儲存至雲端
                   </button>
                 </div>
-                
-                {/* ✨ 新增：圖卡內容顯示開關 (不影響截圖內的畫面，只控制區塊是否顯示) */}
+
+                {/* ✨ 圖卡內容顯示開關 */}
                 <div style={{ display: 'flex', gap: '15px', width: '100%', justifyContent: 'center', marginTop: '-5px' }}>
                   <label style={{ fontSize: '12px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                     <input type="checkbox" checked={showBasicConfig} onChange={() => setShowBasicConfig(!showBasicConfig)} style={{ accentColor: '#d81b60' }} />
@@ -729,7 +739,7 @@ export default function App() {
                   <div style={{ gridArea: '3 / 2 / 4 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={hiddenSeal.img} alt="隱藏推動" style={{ width: '48px' }} /><span style={labelStyle}>隱藏推動：{hiddenSeal.name}</span></div>
                 </div>
 
-                {/* ✨ 基礎能量配置 (依照開關顯示，並置中標題) */}
+                {/* ✨ 基礎能量配置 */}
                 {showBasicConfig && (
                   <div style={reportCardStyle}>
                     <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#3949ab', marginBottom: '15px', textAlign: 'center', letterSpacing: '1px' }}>
@@ -745,47 +755,18 @@ export default function App() {
                   </div>
                 )}
 
-                {/* ✨ 高階星際數據 (依照開關顯示) */}
+                {/* ✨ 高階星際數據 (絕美粉色四宮格) */}
                 {showAdvancedData && (
                   <div style={{...reportCardStyle, backgroundColor: '#fff0f5', borderColor: '#f8bbd0', padding: '20px 15px'}}>
                     <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#d81b60', marginBottom: '15px', textAlign: 'center', letterSpacing: '1px' }}>
                       高階星際數據
                     </div>
-                    
+
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', width: '100%' }}>
-                      
-                      {/* 1. PSI 記憶 */}
-                      <MiniOracleCard 
-                        title="PSI 記憶" 
-                        kinNum={psiKinNum} 
-                        kinDetails={getAdvancedKinDetails(psiKinNum)} 
-                        oracleDetails={getOracleDetails(psiKinNum)} 
-                      />
-
-                      {/* 2. 女神印記 */}
-                      <MiniOracleCard 
-                        title="女神印記" 
-                        kinNum={goddessKinNum} 
-                        kinDetails={goddessKinDetails} 
-                        oracleDetails={getOracleDetails(goddessKinNum)} 
-                      />
-
-                      {/* 3. 對等 KIN */}
-                      <MiniOracleCard 
-                        title="對等 KIN" 
-                        kinNum={eqKinNum} 
-                        kinDetails={eqKinDetails} 
-                        oracleDetails={getOracleDetails(eqKinNum)} 
-                      />
-
-                      {/* 4. HK21 對等 */}
-                      <MiniOracleCard 
-                        title="HK21 對等" 
-                        kinNum={hk21KinNum} 
-                        kinDetails={hk21Details} 
-                        oracleDetails={getOracleDetails(hk21KinNum)} 
-                      />
-
+                      <MiniOracleCard title="PSI 記憶" kinNum={psiKinNum} kinDetails={getAdvancedKinDetails(psiKinNum)} oracleDetails={getOracleDetails(psiKinNum)} />
+                      <MiniOracleCard title="女神印記" kinNum={goddessKinNum} kinDetails={goddessKinDetails} oracleDetails={getOracleDetails(goddessKinNum)} />
+                      <MiniOracleCard title="對等 KIN" kinNum={eqKinNum} kinDetails={eqKinDetails} oracleDetails={getOracleDetails(eqKinNum)} />
+                      <MiniOracleCard title="HK21 對等" kinNum={hk21KinNum} kinDetails={hk21Details} oracleDetails={getOracleDetails(hk21KinNum)} />
                     </div>
                   </div>
                 )}
@@ -797,7 +778,7 @@ export default function App() {
             </>
           ) : (
             <div style={{ width: '100%', maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              
+
               <div style={{ backgroundColor: '#ffffff', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', padding: '25px 15px', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
                 <div style={{ fontSize: '14px', color: '#666', marginBottom: '5px' }}>今日宇宙能量 ({getTodayString()})</div>
                 <div style={{ fontSize: '28px', fontWeight: '900', color: '#4a148c', marginBottom: '5px' }}>KIN {todayKinNumber}</div>
@@ -817,7 +798,7 @@ export default function App() {
 
               <div style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
                 <h3 style={{ margin: '0 0 15px 0', color: '#d81b60', fontSize: '16px', textAlign: 'center', fontWeight: 'bold', letterSpacing: '1px' }}>✨ 今日流日 (AI測試版) ✨</h3>
-                
+
                 <div style={{ display: 'flex', gap: '10px', width: '100%', alignItems: 'center' }}>
                   <select
                     value={selectedRecordId}

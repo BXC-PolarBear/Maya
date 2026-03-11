@@ -75,7 +75,6 @@ const getAdvancedKinDetails = (calculatedKin) => {
   return { kin: calculatedKin, name, color };
 };
 
-// ✨ 取得五大神諭詳細圖騰資料的引擎
 const getOracleDetails = (kin) => {
   if (!kin || isNaN(kin)) return null; 
   const tone = ((kin - 1) % 13) + 1;
@@ -94,10 +93,33 @@ const getOracleDetails = (kin) => {
   };
 };
 
+// 🛡️ 金鐘罩防護：安全取得會員名稱，絕對不讓系統崩潰
+const getSafeName = (userObj) => {
+  if (!userObj) return "會員";
+  if (userObj.displayName) return userObj.displayName;
+  if (userObj.email) {
+    const parts = userObj.email.split('@');
+    return parts.length > 0 ? parts[0] : "會員";
+  }
+  return "會員";
+};
+
 const formatDateString = (ts) => {
   if (!ts) return '未知';
   const d = new Date(ts);
   return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+};
+
+const formatJoinDate = (u) => {
+  if (u.createdAt) {
+    const d = new Date(u.createdAt);
+    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+  }
+  if (u.updatedAt) {
+    const d = new Date(u.updatedAt);
+    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')} (最後活動)`;
+  }
+  return '🌟 早期創始會員';
 };
 
 // 🌟 絕美迷你神諭卡元件
@@ -158,7 +180,6 @@ export default function App() {
   const [aiResponse, setAiResponse] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   
-  // ✨ 後台與名單狀態
   const [savedRecords, setSavedRecords] = useState([]);
   const [recordsLoaded, setRecordsLoaded] = useState(false); 
   const [showRecordsView, setShowRecordsView] = useState(false);
@@ -175,7 +196,6 @@ export default function App() {
   const [showBasicConfig, setShowBasicConfig] = useState(true);
   const [showAdvancedData, setShowAdvancedData] = useState(true);
 
-  // 🚀 URL 參數跳轉 (修正 new URLSearchParams 筆誤)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
@@ -259,7 +279,6 @@ export default function App() {
              }
           }
 
-          // 👑 終極隱藏後門：只要網址輸入 ?bxc_key=admin2026，直接強制寫入正確的布林值
           const urlParams = new URLSearchParams(window.location.search);
           if (urlParams.get('bxc_key') === 'admin2026') {
               try {
@@ -333,7 +352,7 @@ export default function App() {
   };
 
   const removeAdmin = async (targetUser) => {
-    if(!window.confirm(`確定要移除 ${targetUser.displayName || "此帳號"} 的管理員權限嗎？`)) return;
+    if(!window.confirm(`確定要移除 ${getSafeName(targetUser)} 的管理員權限嗎？`)) return;
     try {
       await updateDoc(doc(db, "users", targetUser.id), { isAdmin: false });
       fetchAllUsers(); 
@@ -650,7 +669,7 @@ export default function App() {
             </div>
           )}
 
-          {/* 嚴謹的條件渲染切換 */}
+          {/* 🛡️ 金鐘罩防護：嚴格檢查 user 和 u，絕不白畫面 */}
           {showAdminView ? (
             <div style={{ width: '100%', maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <h3 style={{ color: '#1e3a8a', margin: '0 0 10px 0', textAlign: 'center', letterSpacing: '1px' }}>⚙️ 系統管理後台</h3>
@@ -665,15 +684,16 @@ export default function App() {
                       <div key={u.id} style={{ background: '#fff', padding: '15px', borderRadius: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: u.isAdmin ? '4px solid #d81b60' : '4px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                           <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#333' }}>
-                            {u.displayName || u.email?.split('@')[0] || "會員"}
+                            {getSafeName(u)}
                             {u.isAdmin && <span style={{ marginLeft: '6px', fontSize: '10px', background: '#fce4ec', color: '#d81b60', padding: '2px 6px', borderRadius: '10px' }}>管理員</span>}
                           </span>
-                          <span style={{ fontSize: '11px', color: '#888' }}>{u.email}</span>
+                          <span style={{ fontSize: '11px', color: '#888' }}>{u.email || '無信箱資料'}</span>
                           <span style={{ fontSize: '11px', color: '#888', fontWeight: 'bold', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', alignSelf: 'flex-start' }}>加入日期: {formatJoinDate(u)}</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           <button onClick={() => loadUserRecords(u)} style={{ background: '#e0f2fe', color: '#0284c7', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>查看紀錄</button>
-                          {u.isAdmin && u.id !== user.uid && (
+                          {/* 🛡️ user 確認機制 */}
+                          {u.isAdmin && user && u.id !== user.uid && (
                             <button onClick={() => removeAdmin(u)} style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer' }}>移除權限</button>
                           )}
                         </div>
@@ -684,7 +704,7 @@ export default function App() {
               ) : (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <span style={{ fontWeight: 'bold', color: '#1e3a8a', fontSize: '14px' }}>{viewingUser.displayName || viewingUser.email?.split('@')[0] || "會員"} 的紀錄</span>
+                    <span style={{ fontWeight: 'bold', color: '#1e3a8a', fontSize: '14px' }}>{getSafeName(viewingUser)} 的紀錄</span>
                     <button onClick={() => setViewingUser(null)} style={{ background: '#f1f5f9', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', color: '#475569' }}>返回名單</button>
                   </div>
                   {viewingUserRecords.length === 0 ? (
@@ -739,7 +759,7 @@ export default function App() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <span style={{ fontSize: '12px', color: '#94a3b8' }}>目前正在檢視會員資料</span>
                     <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#f8bbd0' }}>
-                      {adminViewingRecord.fromUser?.displayName || adminViewingRecord.fromUser?.email?.split('@')[0] || "會員"}
+                      {getSafeName(adminViewingRecord.fromUser)}
                     </span>
                   </div>
                   <button onClick={() => { setAdminViewingRecord(null); setShowAdminView(true); }} style={{ backgroundColor: '#d81b60', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>

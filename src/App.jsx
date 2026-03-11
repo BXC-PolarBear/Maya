@@ -178,11 +178,13 @@ export default function App() {
   const [aiResponse, setAiResponse] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   
+  // ✨ 狀態管理
   const [savedRecords, setSavedRecords] = useState([]);
   const [recordsLoaded, setRecordsLoaded] = useState(false); 
   const [showRecordsView, setShowRecordsView] = useState(false);
   
-  const [isAdmin, setIsAdmin] = useState(localStorage.getItem('bxc_admin') === 'true');
+  // 🌟 1. 決定是否要畫出「管理後台」這顆按鈕 (只要網址有 ?panel=admin 或是快取有存，就永遠畫出來)
+  const [showAdminButton, setShowAdminButton] = useState(localStorage.getItem('bxc_show_admin_btn') === 'true');
   const [showAdminView, setShowAdminView] = useState(false);
   const [allUsersList, setAllUsersList] = useState([]);
   const [viewingUser, setViewingUser] = useState(null);
@@ -194,18 +196,21 @@ export default function App() {
   const [showBasicConfig, setShowBasicConfig] = useState(true);
   const [showAdvancedData, setShowAdvancedData] = useState(true);
 
+  // 🚀 URL 參數解析：判斷分頁與是否顯示管理員按鈕
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('tab') === 'daily') setActiveTab('daily');
+      
+      // 只要網址帶有 ?panel=admin，按鈕就永遠釘在畫面上！
+      if (urlParams.get('panel') === 'admin') {
+        setShowAdminButton(true);
+        localStorage.setItem('bxc_show_admin_btn', 'true');
+        // 為了乾淨，自動清除網址參數
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     }
   }, []);
-
-  const updateAdminState = (status) => {
-    setIsAdmin(status);
-    if (status) localStorage.setItem('bxc_admin', 'true');
-    else localStorage.removeItem('bxc_admin');
-  };
 
   useEffect(() => {
     let isMounted = true;
@@ -268,16 +273,12 @@ export default function App() {
              const safeName = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : "旅人");
              await setDoc(userRef, { email: currentUser.email || "", displayName: safeName, isAdmin: false, createdAt: Date.now() }, { merge: true });
           } else {
+             // ✨ 自動修復：當老會員登入時，自動補足建立時間
              const dbData = userSnap.data();
-             const adminStatus = dbData.isAdmin === true || String(dbData.isAdmin).toLowerCase() === 'true';
-             updateAdminState(adminStatus);
-             
              if (!dbData.createdAt && currentUser.metadata && currentUser.metadata.creationTime) {
                  await setDoc(userRef, { createdAt: new Date(currentUser.metadata.creationTime).getTime() }, { merge: true });
              }
           }
-
-          // ⚠️ 【升級捷徑已完全移除】系統從此再無密碼後門，只能從 Firebase 手動打勾升級
 
           const recordsRef = collection(db, "users", currentUser.uid, "records");
           const snapshot = await getDocs(recordsRef);
@@ -291,7 +292,6 @@ export default function App() {
       } else {
         setSavedRecords([]); 
         setRecordsLoaded(false); 
-        updateAdminState(false);
       }
     });
     return () => unsubscribe();
@@ -313,6 +313,34 @@ export default function App() {
       }
     }
   }, [date, userName, user, recordsLoaded, savedRecords.length]);
+
+  // 🌟 2. 按下去才驗證權限！(最嚴謹的防駭客作法)
+  const handleAdminClick = async () => {
+    if (showAdminView) {
+        setShowAdminView(false);
+        return;
+    }
+    try {
+        if (!user) return alert("請先登入！");
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        const dbData = userSnap.data();
+        
+        // 寬容驗證：字串 "true" 或 布林 true 都可以
+        const realIsAdmin = dbData && (dbData.isAdmin === true || String(dbData.isAdmin).toLowerCase() === 'true');
+
+        if (realIsAdmin) {
+            fetchAllUsers();
+            setShowAdminView(true);
+            setShowRecordsView(false);
+            setAdminViewingRecord(null);
+        } else {
+            alert("⚠️ 權限不足：您的帳號尚未開通系統管理員權限！\n請聯絡創辦人開通。");
+        }
+    } catch (error) {
+        alert("⚠️ 驗證失敗，請檢查網路或系統設定！");
+    }
+  };
 
   const fetchAllUsers = async () => {
     try {
@@ -630,13 +658,9 @@ export default function App() {
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
-              {isAdmin && (
-                <button onClick={() => {
-                    if(!showAdminView) fetchAllUsers();
-                    setShowAdminView(!showAdminView); 
-                    setShowRecordsView(false); 
-                    setAdminViewingRecord(null);
-                }} style={{ padding: '6px 10px', fontSize: '12px', backgroundColor: showAdminView ? '#1e3a8a' : '#fff', border: '1px solid #1e3a8a', color: showAdminView ? '#fff' : '#1e3a8a', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+              {/* 🌟 永遠常駐的按鈕（按下去才驗證權限） */}
+              {showAdminButton && (
+                <button onClick={handleAdminClick} style={{ padding: '6px 10px', fontSize: '12px', backgroundColor: showAdminView ? '#1e3a8a' : '#fff', border: '1px solid #1e3a8a', color: showAdminView ? '#fff' : '#1e3a8a', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
                   {showAdminView ? '✕ 關閉管理' : '⚙️ 管理後台'}
                 </button>
               )}
@@ -657,7 +681,6 @@ export default function App() {
             </div>
           )}
 
-          {/* 🛡️ 金鐘罩防護：嚴格檢查 user 和 u，絕不白畫面 */}
           {showAdminView ? (
             <div style={{ width: '100%', maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <h3 style={{ color: '#1e3a8a', margin: '0 0 10px 0', textAlign: 'center', letterSpacing: '1px' }}>⚙️ 系統管理後台</h3>
@@ -680,7 +703,6 @@ export default function App() {
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           <button onClick={() => loadUserRecords(u)} style={{ background: '#e0f2fe', color: '#0284c7', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>查看紀錄</button>
-                          {/* 🛡️ user 確認機制 */}
                           {u.isAdmin && user && u.id !== user.uid && (
                             <button onClick={() => removeAdmin(u)} style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer' }}>移除權限</button>
                           )}

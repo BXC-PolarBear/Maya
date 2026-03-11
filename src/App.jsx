@@ -160,10 +160,9 @@ export default function App() {
   
   // ✨ 後台與名單狀態
   const [savedRecords, setSavedRecords] = useState([]);
-  const [recordsLoaded, setRecordsLoaded] = useState(false); // ✨ 新增：確認雲端資料是否已載入完畢，防暴衝！
+  const [recordsLoaded, setRecordsLoaded] = useState(false); 
   const [showRecordsView, setShowRecordsView] = useState(false);
   
-  // 🌟 從 localStorage 初始化 isAdmin
   const [isAdmin, setIsAdmin] = useState(localStorage.getItem('bxc_admin') === 'true');
   const [showAdminView, setShowAdminView] = useState(false);
   const [allUsersList, setAllUsersList] = useState([]);
@@ -253,6 +252,11 @@ export default function App() {
              await setDoc(userRef, { email: currentUser.email || "", displayName: safeName, isAdmin: false, createdAt: Date.now() }, { merge: true });
           } else {
              updateAdminState(userSnap.data().isAdmin === true);
+             
+             // 🚀 【完美修復】自動幫老會員把底層註冊時間補回來！
+             if (!userSnap.data().createdAt && currentUser.metadata && currentUser.metadata.creationTime) {
+                 await setDoc(userRef, { createdAt: new Date(currentUser.metadata.creationTime).getTime() }, { merge: true });
+             }
           }
 
           // 🚀 升級管理員參數偵測 (?level=admin)
@@ -273,13 +277,13 @@ export default function App() {
           const cloudRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           cloudRecords.sort((a, b) => b.timestamp - a.timestamp);
           setSavedRecords(cloudRecords);
-          setRecordsLoaded(true); // ✨ 雲端紀錄載入完畢，解除防暴衝鎖定
+          setRecordsLoaded(true); 
         } catch (error) {
-          setRecordsLoaded(true); // 即使失敗也要解除鎖定，避免系統卡死
+          setRecordsLoaded(true); 
         }
       } else {
         setSavedRecords([]); 
-        setRecordsLoaded(false); // ✨ 登出時重置標記
+        setRecordsLoaded(false); 
         updateAdminState(false);
       }
     });
@@ -293,7 +297,7 @@ export default function App() {
     }
   }, [userName, date, user, adminViewingRecord]);
 
-  // 🚀✨ 智慧建檔機制防暴衝版：只有在「確認雲端已載入完畢(recordsLoaded)」且「真的沒紀錄(length===0)」時，才執行自動儲存！
+  // 🚀✨ 智慧建檔機制防暴衝版
   const autoSaveTriggered = useRef(false);
   useEffect(() => {
     if (user && recordsLoaded && savedRecords.length === 0 && !autoSaveTriggered.current) {
@@ -611,6 +615,7 @@ export default function App() {
       ) : (
         <div style={{ padding: '15px', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           
+          {/* 頂部選單 */}
           <div style={{ width: '100%', maxWidth: '380px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', padding: '0 5px', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               {lineProfile ? (

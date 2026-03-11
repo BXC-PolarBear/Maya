@@ -6,7 +6,7 @@ import liff from '@line/liff';
 import { auth, db } from './firebase'; 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 // ✨ 引入管理員所需 Firestore 函式
-import { collection, doc, setDoc, getDocs, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
 
 // 🚀 匯入您辛苦建置的 441 矩陣資料庫
 import { timeMatrix, spaceMatrix, synchronicMatrix } from './Matrix441';
@@ -50,7 +50,7 @@ const advancedMatrixData = {
   "13-1":110, "13-2":110, "13-3":110, "13-4":111, "13-5":111, "13-6":111, "13-7":244, "13-8":245, "13-9":246, "13-10":247, "13-11":248, "13-12":249, "13-13":250, "13-14":251, "13-15":252, "13-16":253, "13-17":254, "13-18":255, "13-19":256, "13-20":257, "13-21":258, "13-22":259, "13-23":150, "13-24":150, "13-25":150, "13-26":151, "13-27":151, "13-28":151
 };
 
-// 🚀 光點密碼解鎖：等離子與圖騰對應 BMU (這就是讓 1984/11/19 算出 HK120 的關鍵！)
+// 🚀 光點密碼解鎖：等離子與圖騰對應 BMU
 const plasmasBMU = [108, 291, 144, 315, 414, 402, 441]; 
 const archetypeBMUs = [414, 108, 144, 126, 90, 288, 294, 291, 300, 306, 303, 312, 318, 315, 276, 282, 279, 396, 402, 408]; 
 
@@ -75,7 +75,6 @@ const getAdvancedKinDetails = (calculatedKin) => {
   return { kin: calculatedKin, name, color };
 };
 
-// ✨ 取得五大神諭詳細圖騰資料的引擎
 const getOracleDetails = (kin) => {
   if (!kin || isNaN(kin)) return null; 
   const tone = ((kin - 1) % 13) + 1;
@@ -94,7 +93,13 @@ const getOracleDetails = (kin) => {
   };
 };
 
-// 🌟 絕美迷你神諭卡元件 (粉色版)
+const formatDateString = (ts) => {
+  if (!ts) return '未知';
+  const d = new Date(ts);
+  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// 🌟 絕美迷你神諭卡元件
 const MiniOracleCard = ({ title, kinNum, kinDetails, oracleDetails }) => {
   if (!kinNum || !oracleDetails) {
     return (
@@ -109,28 +114,13 @@ const MiniOracleCard = ({ title, kinNum, kinDetails, oracleDetails }) => {
     <div style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px solid #f8bbd0', boxShadow: '0 4px 10px rgba(216, 27, 96, 0.05)' }}>
       <div style={{ fontSize: '11px', color: '#888', marginBottom: '2px', fontWeight: 'bold', letterSpacing: '0.5px' }}>{title} KIN {kinNum}</div>
       <div style={{ fontSize: '12px', fontWeight: 'bold', color: kinDetails.color, marginBottom: '12px' }}>{kinDetails.name}</div>
-      
       <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, auto)', gap: '6px', alignItems: 'center', justifyItems: 'center', width: '100%' }}>
-        <div style={{ gridArea: '1 / 1 / 2 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img src={oracleDetails.wavespellSeal.img} alt="波符" style={{ width: '18px', opacity: 0.8 }} />
-        </div>
-        <div style={{ gridArea: '1 / 2 / 2 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img src={oracleDetails.guideSeal.img} alt="引導" style={{ width: '28px' }} />
-        </div>
-        <div style={{ gridArea: '2 / 1 / 3 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img src={oracleDetails.challengeSeal.img} alt="挑戰" style={{ width: '28px' }} />
-        </div>
-        <div style={{ gridArea: '2 / 2 / 3 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img src={`/tone_${oracleDetails.tone}.png`} alt="調性" style={{ height: '8px', marginBottom: '4px', objectFit: 'contain' }} />
-          <img src={oracleDetails.mainSeal.img} alt="主印記" style={{ width: '42px' }} />
-          <img src={`/tone_${oracleDetails.bottomTone}.png`} alt="推動調性" style={{ height: '8px', marginTop: '4px', objectFit: 'contain' }} />
-        </div>
-        <div style={{ gridArea: '2 / 3 / 3 / 4', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img src={oracleDetails.supportSeal.img} alt="支持" style={{ width: '28px' }} />
-        </div>
-        <div style={{ gridArea: '3 / 2 / 4 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img src={oracleDetails.hiddenSeal.img} alt="隱藏推動" style={{ width: '28px' }} />
-        </div>
+        <div style={{ gridArea: '1 / 1 / 2 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={oracleDetails.wavespellSeal.img} alt="波符" style={{ width: '18px', opacity: 0.8 }} /></div>
+        <div style={{ gridArea: '1 / 2 / 2 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={oracleDetails.guideSeal.img} alt="引導" style={{ width: '28px' }} /></div>
+        <div style={{ gridArea: '2 / 1 / 3 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={oracleDetails.challengeSeal.img} alt="挑戰" style={{ width: '28px' }} /></div>
+        <div style={{ gridArea: '2 / 2 / 3 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={`/tone_${oracleDetails.tone}.png`} alt="調性" style={{ height: '8px', marginBottom: '4px', objectFit: 'contain' }} /><img src={oracleDetails.mainSeal.img} alt="主印記" style={{ width: '42px' }} /><img src={`/tone_${oracleDetails.bottomTone}.png`} alt="推動調性" style={{ height: '8px', marginTop: '4px', objectFit: 'contain' }} /></div>
+        <div style={{ gridArea: '2 / 3 / 3 / 4', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={oracleDetails.supportSeal.img} alt="支持" style={{ width: '28px' }} /></div>
+        <div style={{ gridArea: '3 / 2 / 4 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={oracleDetails.hiddenSeal.img} alt="隱藏推動" style={{ width: '28px' }} /></div>
       </div>
     </div>
   );
@@ -170,7 +160,9 @@ export default function App() {
   // ✨ 後台與名單狀態
   const [savedRecords, setSavedRecords] = useState([]);
   const [showRecordsView, setShowRecordsView] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  
+  // 🌟 從 localStorage 初始化 isAdmin，防止重整時按鈕消失閃爍
+  const [isAdmin, setIsAdmin] = useState(localStorage.getItem('bxc_admin') === 'true');
   const [showAdminView, setShowAdminView] = useState(false);
   const [allUsersList, setAllUsersList] = useState([]);
   const [viewingUser, setViewingUser] = useState(null);
@@ -189,6 +181,13 @@ export default function App() {
       if (urlParams.get('tab') === 'daily') setActiveTab('daily');
     }
   }, []);
+
+  // 安全更新管理員狀態的 Helper
+  const updateAdminState = (status) => {
+    setIsAdmin(status);
+    if (status) localStorage.setItem('bxc_admin', 'true');
+    else localStorage.removeItem('bxc_admin');
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -236,19 +235,23 @@ export default function App() {
         setIsInitializing(false); 
         const savedName = localStorage.getItem(`maya_name_${currentUser.uid}`);
         const savedDate = localStorage.getItem(`maya_date_${currentUser.uid}`);
+        
+        // 💡 智慧代入姓名：如果沒有舊紀錄，自動拿 LINE 名字或 Email 帳號當作預設姓名
         if (savedName) setUserName(savedName);
+        else if (currentUser.displayName) setUserName(currentUser.displayName);
+        else if (currentUser.email) setUserName(currentUser.email.split('@')[0]);
+
         if (savedDate && savedDate.length > 5) setDate(savedDate);
 
         try {
-          // 🚀 判斷與升級管理員
           const userRef = doc(db, "users", currentUser.uid);
           const userSnap = await getDoc(userRef);
           
           if (!userSnap.exists()) {
-             const safeName = currentUser.email ? currentUser.email.split('@')[0] : "旅人";
+             const safeName = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : "旅人");
              await setDoc(userRef, { email: currentUser.email || "", displayName: safeName, isAdmin: false, createdAt: Date.now() }, { merge: true });
           } else {
-             setIsAdmin(userSnap.data().isAdmin === true);
+             updateAdminState(userSnap.data().isAdmin === true);
           }
 
           // 🚀 升級管理員參數偵測 (?level=admin)
@@ -256,11 +259,11 @@ export default function App() {
           if (urlParams.get('level') === 'admin') {
               try {
                 await setDoc(userRef, { isAdmin: true }, { merge: true });
-                setIsAdmin(true);
+                updateAdminState(true);
                 alert('🎉 已成功升級為系統管理員！');
                 window.history.replaceState({}, document.title, window.location.pathname);
               } catch (err) {
-                alert('⚠️ 升級失敗：請檢查 Firebase Firestore 的 Security Rules 是否開放寫入！\n錯誤訊息：' + err.message);
+                alert('⚠️ 升級失敗：請檢查 Firebase Firestore 的 Security Rules 是否開放讀寫！');
               }
           }
 
@@ -269,12 +272,10 @@ export default function App() {
           const cloudRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           cloudRecords.sort((a, b) => b.timestamp - a.timestamp);
           setSavedRecords(cloudRecords);
-        } catch (error) {
-           console.error(error);
-        }
+        } catch (error) {}
       } else {
         setSavedRecords([]); 
-        setIsAdmin(false);
+        updateAdminState(false);
       }
     });
     return () => unsubscribe();
@@ -287,15 +288,29 @@ export default function App() {
     }
   }, [userName, date, user, adminViewingRecord]);
 
-  // 🚀 管理員專屬功能 (加上錯誤防呆)
+  // 🚀✨ 智慧建檔機制：如果是新會員第一次改變日期，系統無感自動儲存！
+  const autoSaveTriggered = useRef(false);
+  useEffect(() => {
+    if (user && savedRecords.length === 0 && !autoSaveTriggered.current) {
+      // 只要他有姓名，而且日期不是今天 (代表他選了自己的生日)
+      if (userName && date !== getTodayString()) {
+        autoSaveTriggered.current = true;
+        handleSaveRecord(true); // silent = true (不跳通知)
+      }
+    }
+  }, [date, userName, user, savedRecords.length]);
+
+  // 🚀 管理員專屬功能
   const fetchAllUsers = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "users"));
       const users = [];
       querySnapshot.forEach((d) => { users.push({ id: d.id, ...d.data() }); });
+      // 依照加入日期排序 (新 -> 舊)
+      users.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       setAllUsersList(users);
     } catch(e) {
-      alert("⚠️ 無法讀取會員名單，請確定 Firebase Firestore 規則已設定為 allow read: if true;");
+      alert("⚠️ 無法讀取會員名單，請確定 Firebase Firestore 規則已設定為 allow read, write: if true;");
     }
   };
 
@@ -313,7 +328,7 @@ export default function App() {
   };
 
   const removeAdmin = async (targetUser) => {
-    if(!window.confirm(`確定要移除此帳號的管理員權限嗎？`)) return;
+    if(!window.confirm(`確定要移除 ${targetUser.displayName || "此帳號"} 的管理員權限嗎？`)) return;
     try {
       await updateDoc(doc(db, "users", targetUser.id), { isAdmin: false });
       fetchAllUsers(); 
@@ -480,9 +495,15 @@ export default function App() {
   const dateParts = date ? date.split('-') : getTodayString().split('-');
   const formattedDate = dateParts.length === 3 ? `${dateParts[0]}/${parseInt(dateParts[1], 10)}/${parseInt(dateParts[2], 10)}` : '';
 
-  const handleSaveRecord = async () => {
-    if (!userName.trim()) return alert("請先在上方輸入「姓名」才能儲存喔！");
-    if (!user) return alert("請先登入才能使用雲端儲存功能！");
+  // 🚀 加上 isSilent 參數的儲存機制
+  const handleSaveRecord = async (isSilent = false) => {
+    const silent = isSilent === true;
+    if (!userName.trim() && !silent) return alert("請先在上方輸入「姓名」才能儲存喔！");
+    if (!userName.trim() && silent) return; // 沒名字就不自動存
+    if (!user) {
+       if(!silent) alert("請先登入才能使用雲端儲存功能！");
+       return;
+    }
 
     const existingIndex = savedRecords.findIndex(r => r.name === userName.trim());
     const docId = existingIndex >= 0 ? savedRecords[existingIndex].id : Date.now().toString();
@@ -501,9 +522,9 @@ export default function App() {
 
       newRecords.sort((a, b) => b.timestamp - a.timestamp);
       setSavedRecords(newRecords);
-      alert(`✅ 已成功將 ${userName.trim()} 的資料同步至雲端資料庫！`);
+      if (!silent) alert(`✅ 已成功將 ${userName.trim()} 的資料同步至雲端資料庫！`);
     } catch (error) {
-      alert("雲端儲存失敗，請檢查資料庫權限設定！");
+      if (!silent) alert("雲端儲存失敗，請檢查資料庫權限設定！");
     }
   };
 
@@ -649,6 +670,7 @@ export default function App() {
                             {u.isAdmin && <span style={{ marginLeft: '6px', fontSize: '10px', background: '#fce4ec', color: '#d81b60', padding: '2px 6px', borderRadius: '10px' }}>管理員</span>}
                           </span>
                           <span style={{ fontSize: '11px', color: '#888' }}>{u.email}</span>
+                          <span style={{ fontSize: '11px', color: '#888' }}>加入日期: {formatDateString(u.createdAt)}</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           <button onClick={() => loadUserRecords(u)} style={{ background: '#e0f2fe', color: '#0284c7', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>查看紀錄</button>
@@ -735,7 +757,7 @@ export default function App() {
                 <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
                   <button onClick={downloadScreenshot} style={{ flex: 1, padding: '10px 5px', fontSize: '13px', fontWeight: 'bold', color: '#fff', backgroundColor: '#ec407a', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(236, 64, 122, 0.3)', boxSizing: 'border-box' }}>📸 另存圖卡</button>
                   {!adminViewingRecord && (
-                    <button onClick={handleSaveRecord} style={{ flex: 1, padding: '10px 5px', fontSize: '13px', fontWeight: 'bold', color: '#fff', backgroundColor: '#26a69a', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(38, 166, 154, 0.3)', boxSizing: 'border-box' }}>💾 儲存至雲端</button>
+                    <button onClick={() => handleSaveRecord(false)} style={{ flex: 1, padding: '10px 5px', fontSize: '13px', fontWeight: 'bold', color: '#fff', backgroundColor: '#26a69a', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(38, 166, 154, 0.3)', boxSizing: 'border-box' }}>💾 儲存至雲端</button>
                   )}
                 </div>
                 

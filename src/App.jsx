@@ -6,7 +6,7 @@ import liff from '@line/liff';
 import { auth, db } from './firebase'; 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 // ✨ 引入管理員所需 Firestore 函式
-import { collection, doc, setDoc, getDocs, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 // 🚀 匯入您辛苦建置的 441 矩陣資料庫
 import { timeMatrix, spaceMatrix, synchronicMatrix } from './Matrix441';
@@ -69,7 +69,7 @@ const getAdvancedKinDetails = (calculatedKin) => {
   if (!calculatedKin || isNaN(calculatedKin)) return { name: "未知", color: "#333" };
   const tone = ((calculatedKin - 1) % 13) + 1;
   const sealIndex = calculatedKin % 20;
-  const seal = seals[sealIndex] || seals[0]; // 防呆保護
+  const seal = seals[sealIndex] || seals[0]; 
   const name = `${toneNames[tone - 1]}的${seal.name}`;
   const color = getSealColor(sealIndex);
   return { kin: calculatedKin, name, color };
@@ -77,7 +77,7 @@ const getAdvancedKinDetails = (calculatedKin) => {
 
 // ✨ 取得五大神諭詳細圖騰資料的引擎
 const getOracleDetails = (kin) => {
-  if (!kin || isNaN(kin)) return null; // 防呆保護
+  if (!kin || isNaN(kin)) return null; 
   const tone = ((kin - 1) % 13) + 1;
   const bottomTone = 14 - tone;
   const mainIdx = kin % 20;
@@ -109,7 +109,7 @@ const MiniOracleCard = ({ title, kinNum, kinDetails, oracleDetails }) => {
     <div style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px solid #f8bbd0', boxShadow: '0 4px 10px rgba(216, 27, 96, 0.05)' }}>
       <div style={{ fontSize: '11px', color: '#888', marginBottom: '2px', fontWeight: 'bold', letterSpacing: '0.5px' }}>{title} KIN {kinNum}</div>
       <div style={{ fontSize: '12px', fontWeight: 'bold', color: kinDetails.color, marginBottom: '12px' }}>{kinDetails.name}</div>
-
+      
       <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, auto)', gap: '6px', alignItems: 'center', justifyItems: 'center', width: '100%' }}>
         <div style={{ gridArea: '1 / 1 / 2 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <img src={oracleDetails.wavespellSeal.img} alt="波符" style={{ width: '18px', opacity: 0.8 }} />
@@ -166,7 +166,7 @@ export default function App() {
   const [previewImage, setPreviewImage] = useState(null);
   const [aiResponse, setAiResponse] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
-
+  
   // ✨ 後台與名單狀態
   const [savedRecords, setSavedRecords] = useState([]);
   const [showRecordsView, setShowRecordsView] = useState(false);
@@ -237,26 +237,31 @@ export default function App() {
         const savedName = localStorage.getItem(`maya_name_${currentUser.uid}`);
         const savedDate = localStorage.getItem(`maya_date_${currentUser.uid}`);
         if (savedName) setUserName(savedName);
-        if (savedDate && savedDate.length > 5) setDate(savedDate); // 防呆機制，避免抓到空值崩潰
+        if (savedDate && savedDate.length > 5) setDate(savedDate);
 
         try {
-          // 🚀 判斷是否為管理員
+          // 🚀 判斷與升級管理員
           const userRef = doc(db, "users", currentUser.uid);
           const userSnap = await getDoc(userRef);
-          if (userSnap.exists()) {
-             setIsAdmin(userSnap.data().isAdmin === true);
-          } else {
+          
+          if (!userSnap.exists()) {
              const safeName = currentUser.email ? currentUser.email.split('@')[0] : "旅人";
-             await setDoc(userRef, { email: currentUser.email || "", displayName: safeName, isAdmin: false, createdAt: Date.now() });
+             await setDoc(userRef, { email: currentUser.email || "", displayName: safeName, isAdmin: false, createdAt: Date.now() }, { merge: true });
+          } else {
+             setIsAdmin(userSnap.data().isAdmin === true);
           }
 
           // 🚀 升級管理員參數偵測 (?level=admin)
           const urlParams = new URLSearchParams(window.location.search);
           if (urlParams.get('level') === 'admin') {
-              await updateDoc(userRef, { isAdmin: true });
-              setIsAdmin(true);
-              alert('🎉 已成功升級為系統管理員！');
-              window.history.replaceState({}, document.title, window.location.pathname);
+              try {
+                await setDoc(userRef, { isAdmin: true }, { merge: true });
+                setIsAdmin(true);
+                alert('🎉 已成功升級為系統管理員！');
+                window.history.replaceState({}, document.title, window.location.pathname);
+              } catch (err) {
+                alert('⚠️ 升級失敗：請檢查 Firebase Firestore 的 Security Rules 是否開放寫入！\n錯誤訊息：' + err.message);
+              }
           }
 
           const recordsRef = collection(db, "users", currentUser.uid, "records");
@@ -264,7 +269,9 @@ export default function App() {
           const cloudRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           cloudRecords.sort((a, b) => b.timestamp - a.timestamp);
           setSavedRecords(cloudRecords);
-        } catch (error) {}
+        } catch (error) {
+           console.error(error);
+        }
       } else {
         setSavedRecords([]); 
         setIsAdmin(false);
@@ -280,29 +287,39 @@ export default function App() {
     }
   }, [userName, date, user, adminViewingRecord]);
 
-  // 🚀 管理員專屬功能
+  // 🚀 管理員專屬功能 (加上錯誤防呆)
   const fetchAllUsers = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "users"));
       const users = [];
       querySnapshot.forEach((d) => { users.push({ id: d.id, ...d.data() }); });
       setAllUsersList(users);
-    } catch(e) {}
+    } catch(e) {
+      alert("⚠️ 無法讀取會員名單，請確定 Firebase Firestore 規則已設定為 allow read: if true;");
+    }
   };
 
   const loadUserRecords = async (targetUser) => {
-    const recordsRef = collection(db, "users", targetUser.id, "records");
-    const snapshot = await getDocs(recordsRef);
-    const r = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    r.sort((a, b) => b.timestamp - a.timestamp);
-    setViewingUserRecords(r);
-    setViewingUser(targetUser);
+    try {
+      const recordsRef = collection(db, "users", targetUser.id, "records");
+      const snapshot = await getDocs(recordsRef);
+      const r = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      r.sort((a, b) => b.timestamp - a.timestamp);
+      setViewingUserRecords(r);
+      setViewingUser(targetUser);
+    } catch (e) {
+      alert("⚠️ 讀取客戶紀錄失敗！");
+    }
   };
 
   const removeAdmin = async (targetUser) => {
-    if(!window.confirm(`確定要移除 ${targetUser.displayName || "此帳號"} 的管理員權限嗎？`)) return;
-    await updateDoc(doc(db, "users", targetUser.id), { isAdmin: false });
-    fetchAllUsers(); 
+    if(!window.confirm(`確定要移除此帳號的管理員權限嗎？`)) return;
+    try {
+      await updateDoc(doc(db, "users", targetUser.id), { isAdmin: false });
+      fetchAllUsers(); 
+    } catch (e) {
+      alert("⚠️ 移除失敗，請檢查資料庫權限！");
+    }
   };
 
   const handleAuth = async (e) => {
@@ -334,9 +351,9 @@ export default function App() {
   };
 
   const calculateKin = (inputDate) => {
-    if (!inputDate || inputDate.trim() === '') return 260; // 防呆
+    if (!inputDate || inputDate.trim() === '') return 260; 
     const dateObj = new Date(inputDate + 'T00:00:00Z');
-    if (isNaN(dateObj.getTime())) return 260; // 防呆
+    if (isNaN(dateObj.getTime())) return 260; 
     const year = dateObj.getUTCFullYear();
     const month = dateObj.getUTCMonth() + 1; 
     const day = dateObj.getUTCDate();
@@ -572,7 +589,7 @@ export default function App() {
         </div>
       ) : (
         <div style={{ padding: '15px', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-
+          
           {/* 頂部選單 */}
           <div style={{ width: '100%', maxWidth: '380px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', padding: '0 5px', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -721,7 +738,7 @@ export default function App() {
                     <button onClick={handleSaveRecord} style={{ flex: 1, padding: '10px 5px', fontSize: '13px', fontWeight: 'bold', color: '#fff', backgroundColor: '#26a69a', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(38, 166, 154, 0.3)', boxSizing: 'border-box' }}>💾 儲存至雲端</button>
                   )}
                 </div>
-
+                
                 <div style={{ display: 'flex', gap: '15px', width: '100%', justifyContent: 'center', marginTop: '-5px' }}>
                   <label style={{ fontSize: '12px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}><input type="checkbox" checked={showBasicConfig} onChange={() => setShowBasicConfig(!showBasicConfig)} style={{ accentColor: '#d81b60' }} />基礎能量配置</label>
                   <label style={{ fontSize: '12px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}><input type="checkbox" checked={showAdvancedData} onChange={() => setShowAdvancedData(!showAdvancedData)} style={{ accentColor: '#d81b60' }} />高階星際數據</label>

@@ -5,7 +5,7 @@ import './App.css';
 import liff from '@line/liff';
 import { auth, db } from './firebase'; 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
-// ✨ 引入 getDocFromServer，強制繞過快取向伺服器要資料
+// ✨ 引入管理員所需 Firestore 函式
 import { collection, doc, setDoc, getDocs, deleteDoc, getDoc, updateDoc, getDocFromServer } from 'firebase/firestore';
 
 // 🚀 匯入您辛苦建置的 441 矩陣資料庫
@@ -166,11 +166,6 @@ export default function App() {
   const [user, setUser] = useState(null); 
   const [isInitializing, setIsInitializing] = useState(true); 
 
-  const [isLoginMode, setIsLoginMode] = useState(true); 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [authError, setAuthError] = useState('');
-
   const [lineProfile, setLineProfile] = useState(null);
   const [date, setDate] = useState(getTodayString());
   const [userName, setUserName] = useState(''); 
@@ -224,6 +219,7 @@ export default function App() {
     const initLiff = async () => {
       try {
         await liff.init({ liffId: '2009406742-2WUZO3mQ' });
+        // LIFF 已經登入，或者使用者是在 LINE App 內打開
         if (liff.isLoggedIn()) {
           const profile = await liff.getProfile();
           setLineProfile(profile);
@@ -231,6 +227,7 @@ export default function App() {
           const lineEmail = `${profile.userId}@line.bxc.com`;
           const linePassword = `Liff_${profile.userId}_Secret`; 
 
+          // 背景幫使用者無感登入或註冊 Firebase
           try {
             const cred = await signInWithEmailAndPassword(auth, lineEmail, linePassword);
             await setDoc(doc(db, "users", cred.user.uid), {
@@ -334,7 +331,7 @@ export default function App() {
         let realIsAdmin = isAdmin; 
         
         if (!realIsAdmin) {
-            // 關鍵武器：getDocFromServer 強制繞過本地快取！解決第一次點擊失敗的 Bug
+            // 強制繞過快取向伺服器索取最新的驗證權限
             const userRef = doc(db, "users", user.uid);
             const userSnap = await getDocFromServer(userRef);
             const dbData = userSnap.data();
@@ -390,12 +387,7 @@ export default function App() {
     }
   };
 
-  const handleAuth = async (e) => {
-    e.preventDefault(); setAuthError('');
-    try { if (isLoginMode) await signInWithEmailAndPassword(auth, email, password); else await createUserWithEmailAndPassword(auth, email, password); } 
-    catch (error) { setAuthError(error.message); }
-  };
-
+  // 🚀 純淨版 LINE 一鍵登入觸發按鈕
   const handleLineLogin = () => { if (!liff.isLoggedIn()) liff.login(); };
 
   const get13MoonDateInfo = (inputDate) => {
@@ -637,23 +629,15 @@ export default function App() {
 
       {!user ? (
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', width: '100%' }}>
-          <div style={{ backgroundColor: '#fff', padding: '40px 30px', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', width: '100%', maxWidth: '350px', textAlign: 'center' }}>
-            <img src="/Bxc Balance LOGO.png" alt="LOGO" style={{ width: '100px', marginBottom: '20px' }} />
-            <h2 style={{ color: '#d81b60', margin: '0 0 25px 0' }}>{isLoginMode ? '登入星系矩陣' : '註冊星際旅人'}</h2>
-            <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              <input type="email" placeholder="信箱 Email" required value={email} onChange={(e) => setEmail(e.target.value)} style={{ padding: '12px', borderRadius: '10px', border: '1px solid #f8bbd0', outline: 'none' }} />
-              <input type="password" placeholder="密碼 Password" required value={password} onChange={(e) => setPassword(e.target.value)} style={{ padding: '12px', borderRadius: '10px', border: '1px solid #f8bbd0', outline: 'none' }} />
-              {authError && <div style={{ color: 'red', fontSize: '12px', textAlign: 'left' }}>{authError}</div>}
-              <button type="submit" style={{ padding: '12px', fontSize: '16px', fontWeight: 'bold', color: '#fff', backgroundColor: '#ec407a', border: 'none', borderRadius: '10px', cursor: 'pointer', marginTop: '10px' }}>{isLoginMode ? '登入' : '註冊'}</button>
-            </form>
-            <div style={{ margin: '20px 0', color: '#aaa', fontSize: '12px' }}>或</div>
-            <button type="button" onClick={handleLineLogin} style={{ width: '100%', padding: '12px', fontSize: '15px', fontWeight: 'bold', color: '#fff', backgroundColor: '#06C755', border: 'none', borderRadius: '10px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '20px' }}>💬</span>使用 LINE 一鍵登入
+          {/* 🚀 純淨化：專注於 LINE 登入的高質感介面 */}
+          <div style={{ backgroundColor: '#fff', padding: '50px 30px', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', width: '100%', maxWidth: '350px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <img src="/Bxc Balance LOGO.png" alt="LOGO" style={{ width: '120px', marginBottom: '25px' }} />
+            <h2 style={{ color: '#d81b60', margin: '0 0 10px 0', letterSpacing: '1px' }}>登入星系矩陣</h2>
+            <p style={{ color: '#888', fontSize: '13px', marginBottom: '30px', lineHeight: '1.5' }}>請使用 LINE 帳號快速登入<br/>以儲存您的專屬星際印記</p>
+
+            <button type="button" onClick={handleLineLogin} style={{ width: '100%', padding: '14px', fontSize: '16px', fontWeight: 'bold', color: '#fff', backgroundColor: '#06C755', border: 'none', borderRadius: '12px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(6, 199, 85, 0.3)' }}>
+              <span style={{ fontSize: '22px' }}>💬</span>使用 LINE 一鍵登入
             </button>
-            <p style={{ marginTop: '25px', fontSize: '14px', color: '#666' }}>
-              {isLoginMode ? '還沒有帳號嗎？ ' : '已經有帳號了？ '}
-              <span onClick={() => setIsLoginMode(!isLoginMode)} style={{ color: '#d81b60', fontWeight: 'bold', cursor: 'pointer' }}>{isLoginMode ? '立即註冊' : '點此登入'}</span>
-            </p>
           </div>
         </div>
       ) : (

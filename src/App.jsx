@@ -74,7 +74,7 @@ const getAdvancedKinDetails = (calculatedKin) => {
   return { kin: calculatedKin, name, color };
 };
 
-// ✨ 取得五大神諭詳細圖騰資料的引擎 (供迷你四宮格使用)
+// ✨ 取得五大神諭詳細圖騰資料的引擎
 const getOracleDetails = (kin) => {
   if (!kin) return null;
   const tone = ((kin - 1) % 13) + 1;
@@ -184,6 +184,10 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState('query'); 
   const [selectedRecordId, setSelectedRecordId] = useState('current'); 
+  
+  // ✨ 控制圖卡擷取範圍的核選狀態
+  const [showBasicConfig, setShowBasicConfig] = useState(true);
+  const [showAdvancedData, setShowAdvancedData] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -321,11 +325,6 @@ export default function App() {
   const currentToneName = toneNames[toneNumber - 1]; 
   const mainIndex = kinNumber % 20;
 
-  const getGuideIndex = (main, tone) => {
-    const shifts = { 1: 0, 6: 0, 11: 0, 2: 12, 7: 12, 12: 12, 3: 4, 8: 4, 13: 4, 4: 16, 9: 16, 5: 8, 10: 8 };
-    return (main + shifts[tone]) % 20;
-  };
-
   const challengeIndex = (mainIndex + 10) % 20;
   const supportIndex = (39 - mainIndex) % 20;
   const hiddenIndex = (21 - mainIndex) % 20;
@@ -360,7 +359,6 @@ export default function App() {
   // 🚀 核心封神演算法：MCF 疊加與 HK21
   let eqKinNum = null;
   let eqKinDetails = { name: "🔒 待解鎖", color: "#aaa" };
-  let baseMatrixUnit = "🔒 待解鎖"; 
   let hk21KinNum = null;
   let hk21Details = { name: "🔒 待解鎖", color: "#aaa" };
 
@@ -403,7 +401,6 @@ export default function App() {
 
     eqKinNum = mcf % 260 || 260;
     eqKinDetails = getAdvancedKinDetails(eqKinNum);
-    baseMatrixUnit = mcf % 441 || 441;
 
     const plasmaIndex = (moonInfo.day - 1) % 7;
     const plasmaBMU = plasmasBMU[plasmaIndex];
@@ -680,7 +677,7 @@ export default function App() {
             </div>
           ) : activeTab === 'query' ? (
             <>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', marginBottom: '20px', width: '100%', maxWidth: '380px', boxSizing: 'border-box' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', marginBottom: '15px', width: '100%', maxWidth: '380px', boxSizing: 'border-box' }}>
                 <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
                   <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="請輸入名字" style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #f8bbd0', outline: 'none', boxSizing: 'border-box', minWidth: '0' }} />
                   <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #f8bbd0', outline: 'none', boxSizing: 'border-box', minWidth: '0' }} />
@@ -692,6 +689,18 @@ export default function App() {
                   <button onClick={handleSaveRecord} style={{ flex: 1, padding: '10px 5px', fontSize: '13px', fontWeight: 'bold', color: '#fff', backgroundColor: '#26a69a', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(38, 166, 154, 0.3)', boxSizing: 'border-box' }}>
                     💾 儲存至雲端
                   </button>
+                </div>
+                
+                {/* ✨ 新增：圖卡內容顯示開關 (不影響截圖內的畫面，只控制區塊是否顯示) */}
+                <div style={{ display: 'flex', gap: '15px', width: '100%', justifyContent: 'center', marginTop: '-5px' }}>
+                  <label style={{ fontSize: '12px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={showBasicConfig} onChange={() => setShowBasicConfig(!showBasicConfig)} style={{ accentColor: '#d81b60' }} />
+                    基礎能量配置
+                  </label>
+                  <label style={{ fontSize: '12px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={showAdvancedData} onChange={() => setShowAdvancedData(!showAdvancedData)} style={{ accentColor: '#d81b60' }} />
+                    高階星際數據
+                  </label>
                 </div>
               </div>
 
@@ -720,59 +729,66 @@ export default function App() {
                   <div style={{ gridArea: '3 / 2 / 4 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={hiddenSeal.img} alt="隱藏推動" style={{ width: '48px' }} /><span style={labelStyle}>隱藏推動：{hiddenSeal.name}</span></div>
                 </div>
 
-                <div style={reportCardStyle}>
-                  <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#3949ab', marginBottom: '15px' }}>基礎能量配置</div>
-                  <div style={reportRowStyle}><div style={reportLabelStyle}>13月亮曆</div><div style={{ ...reportValueStyle, color: '#3949ab' }}>{moonDateDisplay}</div></div>
-                  <div style={reportRowStyle}><div style={reportLabelStyle}>所屬城堡</div><div style={{ ...reportValueStyle, color: castleColor }}>⬤ {castleName}</div></div>
-                  <div style={reportRowStyle}><div style={reportLabelStyle}>地球家族</div><div style={reportValueStyle}>{earthFamilyName}</div></div>
-                  <div style={reportRowStyle}><div style={reportLabelStyle}>引導</div><div style={{...reportValueStyle, color: getSealColor(guideIndex)}}>{guideSeal.name}</div></div>
-                  <div style={reportRowStyle}><div style={reportLabelStyle}>支持</div><div style={{...reportValueStyle, color: getSealColor(supportIndex)}}>{supportSeal.name}</div></div>
-                  <div style={reportRowStyle}><div style={reportLabelStyle}>挑戰</div><div style={{...reportValueStyle, color: getSealColor(challengeIndex)}}>{challengeSeal.name}</div></div>
-                  <div style={{...reportRowStyle, borderBottom: 'none'}}><div style={reportLabelStyle}>推動</div><div style={{...reportValueStyle, color: getSealColor(hiddenIndex)}}>{fullHiddenName} (Kin {fullHiddenKin})</div></div>
-                </div>
-
-                {/* 🚀 ✨ 粉色版全新 2x2 絕美網格排版 ✨ 🚀 */}
-                <div style={{...reportCardStyle, backgroundColor: '#fff0f5', borderColor: '#f8bbd0', padding: '20px 15px'}}>
-                  <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#d81b60', marginBottom: '15px', textAlign: 'center', letterSpacing: '1px' }}>
-                    高階星際數據
+                {/* ✨ 基礎能量配置 (依照開關顯示，並置中標題) */}
+                {showBasicConfig && (
+                  <div style={reportCardStyle}>
+                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#3949ab', marginBottom: '15px', textAlign: 'center', letterSpacing: '1px' }}>
+                      基礎能量配置
+                    </div>
+                    <div style={reportRowStyle}><div style={reportLabelStyle}>13月亮曆</div><div style={{ ...reportValueStyle, color: '#3949ab' }}>{moonDateDisplay}</div></div>
+                    <div style={reportRowStyle}><div style={reportLabelStyle}>所屬城堡</div><div style={{ ...reportValueStyle, color: castleColor }}>⬤ {castleName}</div></div>
+                    <div style={reportRowStyle}><div style={reportLabelStyle}>地球家族</div><div style={reportValueStyle}>{earthFamilyName}</div></div>
+                    <div style={reportRowStyle}><div style={reportLabelStyle}>引導</div><div style={{...reportValueStyle, color: getSealColor(guideIndex)}}>{guideSeal.name}</div></div>
+                    <div style={reportRowStyle}><div style={reportLabelStyle}>支持</div><div style={{...reportValueStyle, color: getSealColor(supportIndex)}}>{supportSeal.name}</div></div>
+                    <div style={reportRowStyle}><div style={reportLabelStyle}>挑戰</div><div style={{...reportValueStyle, color: getSealColor(challengeIndex)}}>{challengeSeal.name}</div></div>
+                    <div style={{...reportRowStyle, borderBottom: 'none'}}><div style={reportLabelStyle}>推動</div><div style={{...reportValueStyle, color: getSealColor(hiddenIndex)}}>{fullHiddenName} (Kin {fullHiddenKin})</div></div>
                   </div>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', width: '100%' }}>
+                )}
+
+                {/* ✨ 高階星際數據 (依照開關顯示) */}
+                {showAdvancedData && (
+                  <div style={{...reportCardStyle, backgroundColor: '#fff0f5', borderColor: '#f8bbd0', padding: '20px 15px'}}>
+                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#d81b60', marginBottom: '15px', textAlign: 'center', letterSpacing: '1px' }}>
+                      高階星際數據
+                    </div>
                     
-                    {/* 1. PSI 記憶 */}
-                    <MiniOracleCard 
-                      title="PSI 記憶" 
-                      kinNum={psiKinNum} 
-                      kinDetails={getAdvancedKinDetails(psiKinNum)} 
-                      oracleDetails={getOracleDetails(psiKinNum)} 
-                    />
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', width: '100%' }}>
+                      
+                      {/* 1. PSI 記憶 */}
+                      <MiniOracleCard 
+                        title="PSI 記憶" 
+                        kinNum={psiKinNum} 
+                        kinDetails={getAdvancedKinDetails(psiKinNum)} 
+                        oracleDetails={getOracleDetails(psiKinNum)} 
+                      />
 
-                    {/* 2. 女神印記 */}
-                    <MiniOracleCard 
-                      title="女神印記" 
-                      kinNum={goddessKinNum} 
-                      kinDetails={goddessKinDetails} 
-                      oracleDetails={getOracleDetails(goddessKinNum)} 
-                    />
+                      {/* 2. 女神印記 */}
+                      <MiniOracleCard 
+                        title="女神印記" 
+                        kinNum={goddessKinNum} 
+                        kinDetails={goddessKinDetails} 
+                        oracleDetails={getOracleDetails(goddessKinNum)} 
+                      />
 
-                    {/* 3. 對等 KIN */}
-                    <MiniOracleCard 
-                      title="對等 KIN" 
-                      kinNum={eqKinNum} 
-                      kinDetails={eqKinDetails} 
-                      oracleDetails={getOracleDetails(eqKinNum)} 
-                    />
+                      {/* 3. 對等 KIN */}
+                      <MiniOracleCard 
+                        title="對等 KIN" 
+                        kinNum={eqKinNum} 
+                        kinDetails={eqKinDetails} 
+                        oracleDetails={getOracleDetails(eqKinNum)} 
+                      />
 
-                    {/* 4. HK21 對等 */}
-                    <MiniOracleCard 
-                      title="HK21 對等" 
-                      kinNum={hk21KinNum} 
-                      kinDetails={hk21Details} 
-                      oracleDetails={getOracleDetails(hk21KinNum)} 
-                    />
+                      {/* 4. HK21 對等 */}
+                      <MiniOracleCard 
+                        title="HK21 對等" 
+                        kinNum={hk21KinNum} 
+                        kinDetails={hk21Details} 
+                        oracleDetails={getOracleDetails(hk21KinNum)} 
+                      />
 
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div style={{ marginTop: '20px', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                   <img src="/Bxc Balance LOGO.png" alt="Bxc Balance LOGO" style={{ width: '120px', height: 'auto', opacity: 0.8, transform: 'translateX(-10px)' }} />

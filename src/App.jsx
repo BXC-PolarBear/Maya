@@ -6,9 +6,9 @@ import './App.css';
 import liff from '@line/liff';
 import { auth, db } from './firebase'; 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
-import { collection, doc, setDoc, getDocs, deleteDoc, getDoc, updateDoc, getDocFromServer } from 'firebase/firestore';
+// 🌟 這裡新增了 query 和 orderBy 來向 Firebase 索取「已排序」的資料
+import { collection, doc, setDoc, getDocs, deleteDoc, getDoc, updateDoc, getDocFromServer, query, orderBy } from 'firebase/firestore';
 
-// 🚀 引入剛建立的計算引擎與靜態資料
 import { 
   seals, toneNames, earthFamilies, castles, castleColors, advancedMatrixData, plasmasBMU, archetypeBMUs,
   getGuideIndex, getSealColor, getAdvancedKinDetails, getOracleDetails, 
@@ -16,7 +16,6 @@ import {
 } from './mayaEngine';
 import { timeMatrix, spaceMatrix, synchronicMatrix } from './Matrix441';
 
-// 工具函數：安全取得名稱與格式化日期
 const getSafeName = (userObj) => {
   if (!userObj) return "會員";
   if (userObj.displayName) return userObj.displayName;
@@ -39,7 +38,6 @@ const formatJoinDate = (u) => {
   return '🌟 早期創始會員';
 };
 
-// 🌟 絕美迷你神諭卡元件
 const MiniOracleCard = ({ title, kinNum, kinDetails, oracleDetails }) => {
   if (!kinNum || !oracleDetails) {
     return (
@@ -89,11 +87,11 @@ export default function App() {
   const [previewImage, setPreviewImage] = useState(null);
   const [aiResponse, setAiResponse] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
-
+  
   const [savedRecords, setSavedRecords] = useState([]);
   const [recordsLoaded, setRecordsLoaded] = useState(false); 
   const [showRecordsView, setShowRecordsView] = useState(false);
-
+  
   const [showAdminButton, setShowAdminButton] = useState(localStorage.getItem('bxc_show_admin_btn') === 'true');
   const [isAdmin, setIsAdmin] = useState(localStorage.getItem('bxc_admin') === 'true');
   const [showAdminView, setShowAdminView] = useState(false);
@@ -165,7 +163,7 @@ export default function App() {
         setIsInitializing(false); 
         const savedName = localStorage.getItem(`maya_name_${currentUser.uid}`);
         const savedDate = localStorage.getItem(`maya_date_${currentUser.uid}`);
-
+        
         if (savedName) setUserName(savedName);
         else if (currentUser.displayName) setUserName(currentUser.displayName);
         else if (currentUser.email) setUserName(currentUser.email.split('@')[0]);
@@ -174,7 +172,7 @@ export default function App() {
         try {
           const userRef = doc(db, "users", currentUser.uid);
           const userSnap = await getDoc(userRef);
-
+          
           if (!userSnap.exists()) {
              const safeName = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : "旅人");
              await setDoc(userRef, { email: currentUser.email || "", displayName: safeName, isAdmin: false, createdAt: Date.now() }, { merge: true });
@@ -187,10 +185,12 @@ export default function App() {
              }
           }
 
+          // 🌟 效能升級：利用 Firebase orderBy 讓伺服器幫我們排好序再傳過來
           const recordsRef = collection(db, "users", currentUser.uid, "records");
-          const snapshot = await getDocs(recordsRef);
+          const q = query(recordsRef, orderBy("timestamp", "desc"));
+          const snapshot = await getDocs(q);
           const cloudRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          cloudRecords.sort((a, b) => b.timestamp - a.timestamp);
+          
           setSavedRecords(cloudRecords);
           setRecordsLoaded(true); 
         } catch (error) { setRecordsLoaded(true); }
@@ -241,20 +241,27 @@ export default function App() {
 
   const fetchAllUsers = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, "users"));
+      // 🌟 效能升級：把排序交給 Firebase 伺服器
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, orderBy("createdAt", "desc"));
+      const querySnapshot = await getDocs(q);
+      
       const users = [];
       querySnapshot.forEach((d) => { users.push({ id: d.id, ...d.data() }); });
-      users.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       setAllUsersList(users);
-    } catch(e) { alert("⚠️ 無法讀取會員名單，請確定 Firebase Firestore 規則已正確設定"); }
+    } catch(e) {
+      alert("⚠️ 無法讀取會員名單，請確定 Firebase Firestore 規則已正確設定"); 
+    }
   };
 
   const loadUserRecords = async (targetUser) => {
     try {
+      // 🌟 效能升級：把排序交給 Firebase 伺服器
       const recordsRef = collection(db, "users", targetUser.id, "records");
-      const snapshot = await getDocs(recordsRef);
+      const q = query(recordsRef, orderBy("timestamp", "desc"));
+      const snapshot = await getDocs(q);
+      
       const r = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      r.sort((a, b) => b.timestamp - a.timestamp);
       setViewingUserRecords(r); setViewingUser(targetUser);
     } catch (e) { alert("⚠️ 讀取客戶紀錄失敗！"); }
   };
@@ -400,6 +407,8 @@ export default function App() {
       const stateRecord = { id: docId, ...newRecordData };
       if (existingIndex >= 0) newRecords[existingIndex] = stateRecord;
       else newRecords.unshift(stateRecord);
+
+      // 本地狀態還是排序一下比較保險，但源頭已經是排序好的了
       newRecords.sort((a, b) => b.timestamp - a.timestamp);
       setSavedRecords(newRecords);
       if (!silent) alert(`✅ 已成功將 ${userName.trim()} 的資料同步至雲端資料庫！`);
@@ -481,7 +490,7 @@ export default function App() {
         </div>
       ) : (
         <div style={{ padding: '15px', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-
+          
           {/* 頂部選單 */}
           <div style={{ width: '100%', maxWidth: '380px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', padding: '0 5px', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -624,7 +633,7 @@ export default function App() {
                     <button onClick={() => handleSaveRecord(false)} style={{ flex: 1, padding: '10px 5px', fontSize: '13px', fontWeight: 'bold', color: '#fff', backgroundColor: '#26a69a', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(38, 166, 154, 0.3)', boxSizing: 'border-box' }}>💾 儲存至雲端</button>
                   )}
                 </div>
-
+                
                 <div style={{ display: 'flex', gap: '15px', width: '100%', justifyContent: 'center', marginTop: '-5px' }}>
                   <label style={{ fontSize: '12px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}><input type="checkbox" checked={showBasicConfig} onChange={() => setShowBasicConfig(!showBasicConfig)} style={{ accentColor: '#d81b60' }} />基礎能量配置</label>
                   <label style={{ fontSize: '12px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}><input type="checkbox" checked={showAdvancedData} onChange={() => setShowAdvancedData(!showAdvancedData)} style={{ accentColor: '#d81b60' }} />高階星際數據</label>

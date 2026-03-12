@@ -1,3 +1,4 @@
+// src/App.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import './App.css';
@@ -5,94 +6,17 @@ import './App.css';
 import liff from '@line/liff';
 import { auth, db } from './firebase'; 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
-// ✨ 引入管理員所需 Firestore 函式
 import { collection, doc, setDoc, getDocs, deleteDoc, getDoc, updateDoc, getDocFromServer } from 'firebase/firestore';
 
-// 🚀 匯入您辛苦建置的 441 矩陣資料庫
+// 🚀 引入剛建立的計算引擎與靜態資料
+import { 
+  seals, toneNames, earthFamilies, castles, castleColors, advancedMatrixData, plasmasBMU, archetypeBMUs,
+  getGuideIndex, getSealColor, getAdvancedKinDetails, getOracleDetails, 
+  get13MoonDateInfo, calculateKin, getKinFromIndexAndTone 
+} from './mayaEngine';
 import { timeMatrix, spaceMatrix, synchronicMatrix } from './Matrix441';
 
-const seals = [
-  { name: "黃太陽", img: "/20.png" }, { name: "紅龍", img: "/01.png" },
-  { name: "白風", img: "/02.png" }, { name: "藍夜", img: "/03.png" },
-  { name: "黃種子", img: "/04.png" }, { name: "紅蛇", img: "/05.png" },
-  { name: "白世界橋", img: "/06.png" }, { name: "藍手", img: "/07.png" },
-  { name: "黃星星", img: "/08.png" }, { name: "紅月", img: "/09.png" },
-  { name: "白狗", img: "/10.png" }, { name: "藍猴", img: "/11.png" },
-  { name: "黃人", img: "/12.png" }, { name: "紅天行者", img: "/13.png" },
-  { name: "白巫師", img: "/14.png" }, { name: "藍鷹", img: "/15.png" },
-  { name: "黃戰士", img: "/16.png" }, { name: "紅地球", img: "/17.png" },
-  { name: "白鏡", img: "/18.png" }, { name: "藍風暴", img: "/19.png" }
-];
-
-const toneNames = [
-  "磁性", "月亮", "電力", "自我存在", "超頻", "韻律", "共鳴", 
-  "銀河星系", "太陽", "行星", "光譜", "水晶", "宇宙"
-];
-
-const earthFamilies = ["極性家族 (Polar)", "基本家族 (Cardinal)", "核心家族 (Core)", "信號家族 (Signal)", "通道家族 (Gateway)"];
-const castles = ["紅色時間城堡", "白色時間城堡", "藍色時間城堡", "黃色時間城堡", "綠色時間城堡"];
-const castleColors = ["#d32f2f", "#757575", "#1976d2", "#fbc02d", "#388e3c"]; 
-
-// 🚀 13 月亮曆 PSI 查表大字典
-const advancedMatrixData = {
-  "1-1":1, "1-2":1, "1-3":1, "1-4":20, "1-5":20, "1-6":20, "1-7":2, "1-8":3, "1-9":4, "1-10":5, "1-11":6, "1-12":7, "1-13":8, "1-14":9, "1-15":10, "1-16":11, "1-17":12, "1-18":13, "1-19":14, "1-20":15, "1-21":16, "1-22":17, "1-23":241, "1-24":241, "1-25":241, "1-26":260, "1-27":260, "1-28":260,
-  "2-1":22, "2-2":22, "2-3":22, "2-4":39, "2-5":39, "2-6":39, "2-7":18, "2-8":19, "2-9":21, "2-10":23, "2-11":24, "2-12":25, "2-13":26, "2-14":27, "2-15":28, "2-16":29, "2-17":30, "2-18":31, "2-19":32, "2-20":33, "2-21":34, "2-22":35, "2-23":222, "2-24":222, "2-25":222, "2-26":239, "2-27":239, "2-28":239,
-  "3-1":43, "3-2":43, "3-3":43, "3-4":58, "3-5":58, "3-6":58, "3-7":36, "3-8":37, "3-9":38, "3-10":40, "3-11":41, "3-12":42, "3-13":44, "3-14":45, "3-15":46, "3-16":47, "3-17":48, "3-18":49, "3-19":52, "3-20":53, "3-21":54, "3-22":55, "3-23":203, "3-24":203, "3-25":203, "3-26":218, "3-27":218, "3-28":218,
-  "4-1":64, "4-2":64, "4-3":64, "4-4":96, "4-5":96, "4-6":96, "4-7":56, "4-8":57, "4-9":59, "4-10":60, "4-11":61, "4-12":62, "4-13":63, "4-14":65, "4-15":66, "4-16":67, "4-17":68, "4-18":70, "4-19":71, "4-20":73, "4-21":74, "4-22":75, "4-23":210, "4-24":210, "4-25":210, "4-26":197, "4-27":197, "4-28":197,
-  "5-1":85, "5-2":85, "5-3":85, "5-4":77, "5-5":77, "5-6":77, "5-7":76, "5-8":78, "5-9":79, "5-10":80, "5-11":81, "5-12":82, "5-13":83, "5-14":84, "5-15":86, "5-16":87, "5-17":89, "5-18":90, "5-19":91, "5-20":92, "5-21":94, "5-22":95, "5-23":184, "5-24":184, "5-25":184, "5-26":176, "5-27":176, "5-28":176,
-  "6-1":69, "6-2":69, "6-3":69, "6-4":72, "6-5":72, "6-6":72, "6-7":97, "6-8":98, "6-9":99, "6-10":100, "6-11":101, "6-12":102, "6-13":103, "6-14":104, "6-15":105, "6-16":116, "6-17":117, "6-18":118, "6-19":119, "6-20":120, "6-21":121, "6-22":122, "6-23":189, "6-24":189, "6-25":189, "6-26":192, "6-27":192, "6-28":192,
-  "7-1":50, "7-2":50, "7-3":50, "7-4":51, "7-5":51, "7-6":51, "7-7":123, "7-8":124, "7-9":125, "7-10":126, "7-11":127, "7-12":128, "7-13":129, "7-14":130, "7-15":131, "7-16":132, "7-17":133, "7-18":134, "7-19":135, "7-20":136, "7-21":137, "7-22":138, "7-23":165, "7-24":165, "7-25":165, "7-26":211, "7-27":211, "7-28":211,
-  "8-1":88, "8-2":88, "8-3":88, "8-4":93, "8-5":93, "8-6":93, "8-7":139, "8-8":140, "8-9":141, "8-10":142, "8-11":143, "8-12":144, "8-13":145, "8-14":156, "8-15":157, "8-16":158, "8-17":159, "8-18":160, "8-19":161, "8-20":162, "8-21":163, "8-22":164, "8-23":168, "8-24":168, "8-25":168, "8-26":173, "8-27":173, "8-28":173,
-  "9-1":106, "9-2":106, "9-3":106, "9-4":115, "9-5":115, "9-6":115, "9-7":166, "9-8":167, "9-9":169, "9-10":170, "9-11":171, "9-12":172, "9-13":174, "9-14":175, "9-15":177, "9-16":178, "9-17":179, "9-18":180, "9-19":181, "9-20":182, "9-21":183, "9-22":185, "9-23":146, "9-24":146, "9-25":146, "9-26":155, "9-27":155, "9-28":155,
-  "10-1":107, "10-2":107, "10-3":107, "10-4":114, "10-5":114, "10-6":114, "10-7":186, "10-8":187, "10-9":188, "10-10":190, "10-11":191, "10-12":193, "10-13":194, "10-14":195, "10-15":196, "10-16":198, "10-17":199, "10-18":200, "10-19":201, "10-20":202, "10-21":204, "10-22":205, "10-23":147, "10-24":147, "10-25":147, "10-26":154, "10-27":154, "10-28":154,
-  "11-1":108, "11-2":108, "11-3":108, "11-4":113, "11-5":113, "11-6":113, "11-7":206, "11-8":207, "11-9":208, "11-10":209, "11-11":212, "11-12":213, "11-13":214, "11-14":215, "11-15":216, "11-16":217, "11-17":219, "11-18":220, "11-19":221, "11-20":223, "11-21":224, "11-22":225, "11-23":148, "11-24":148, "11-25":148, "11-26":153, "11-27":153, "11-28":153,
-  "12-1":109, "12-2":109, "12-3":109, "12-4":112, "12-5":112, "12-6":112, "12-7":226, "12-8":227, "12-9":228, "12-10":229, "12-11":230, "12-12":231, "12-13":232, "12-14":233, "12-15":234, "12-16":235, "12-17":236, "12-18":237, "12-19":238, "12-20":240, "12-21":242, "12-22":243, "12-23":149, "12-24":149, "12-25":149, "12-26":152, "12-27":152, "12-28":152,
-  "13-1":110, "13-2":110, "13-3":110, "13-4":111, "13-5":111, "13-6":111, "13-7":244, "13-8":245, "13-9":246, "13-10":247, "13-11":248, "13-12":249, "13-13":250, "13-14":251, "13-15":252, "13-16":253, "13-17":254, "13-18":255, "13-19":256, "13-20":257, "13-21":258, "13-22":259, "13-23":150, "13-24":150, "13-25":150, "13-26":151, "13-27":151, "13-28":151
-};
-
-// 🚀 光點密碼解鎖：等離子與圖騰對應 BMU
-const plasmasBMU = [108, 291, 144, 315, 414, 402, 441]; 
-const archetypeBMUs = [414, 108, 144, 126, 90, 288, 294, 291, 300, 306, 303, 312, 318, 315, 276, 282, 279, 396, 402, 408]; 
-
-// ✨ 全域 Helper 函數
-const getGuideIndex = (main, tone) => {
-  const shifts = { 1: 0, 6: 0, 11: 0, 2: 12, 7: 12, 12: 12, 3: 4, 8: 4, 13: 4, 4: 16, 9: 16, 5: 8, 10: 8 };
-  return (main + shifts[tone]) % 20;
-};
-
-const getSealColor = (index) => {
-  const colors = ["#fbc02d", "#d32f2f", "#757575", "#1976d2"]; 
-  return colors[index % 4];
-};
-
-const getAdvancedKinDetails = (calculatedKin) => {
-  if (!calculatedKin || isNaN(calculatedKin)) return { name: "未知", color: "#333" };
-  const tone = ((calculatedKin - 1) % 13) + 1;
-  const sealIndex = calculatedKin % 20;
-  const seal = seals[sealIndex] || seals[0]; 
-  const name = `${toneNames[tone - 1]}的${seal.name}`;
-  const color = getSealColor(sealIndex);
-  return { kin: calculatedKin, name, color };
-};
-
-const getOracleDetails = (kin) => {
-  if (!kin || isNaN(kin)) return null; 
-  const tone = ((kin - 1) % 13) + 1;
-  const bottomTone = 14 - tone;
-  const mainIdx = kin % 20;
-  const challengeIdx = (mainIdx + 10) % 20;
-  const supportIdx = (39 - mainIdx) % 20;
-  const hiddenIdx = (21 - mainIdx) % 20;
-  const guideIdx = getGuideIndex(mainIdx, tone);
-  const wavespellIdx = (mainIdx - (tone - 1) + 260) % 20;
-
-  return {
-    tone, bottomTone, mainSeal: seals[mainIdx], guideSeal: seals[guideIdx],
-    challengeSeal: seals[challengeIdx], supportSeal: seals[supportIdx],
-    hiddenSeal: seals[hiddenIdx], wavespellSeal: seals[wavespellIdx]
-  };
-};
-
+// 工具函數：安全取得名稱與格式化日期
 const getSafeName = (userObj) => {
   if (!userObj) return "會員";
   if (userObj.displayName) return userObj.displayName;
@@ -110,14 +34,8 @@ const formatDateString = (ts) => {
 };
 
 const formatJoinDate = (u) => {
-  if (u.createdAt) {
-    const d = new Date(u.createdAt);
-    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
-  }
-  if (u.updatedAt) {
-    const d = new Date(u.updatedAt);
-    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')} (最後活動)`;
-  }
+  if (u.createdAt) return formatDateString(u.createdAt);
+  if (u.updatedAt) return `${formatDateString(u.updatedAt)} (最後活動)`;
   return '🌟 早期創始會員';
 };
 
@@ -131,7 +49,6 @@ const MiniOracleCard = ({ title, kinNum, kinDetails, oracleDetails }) => {
       </div>
     );
   }
-
   return (
     <div style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px solid #f8bbd0', boxShadow: '0 4px 10px rgba(216, 27, 96, 0.05)' }}>
       <div style={{ fontSize: '11px', color: '#888', marginBottom: '2px', fontWeight: 'bold', letterSpacing: '0.5px' }}>{title} KIN {kinNum}</div>
@@ -165,7 +82,6 @@ const getTodayString = () => {
 export default function App() {
   const [user, setUser] = useState(null); 
   const [isInitializing, setIsInitializing] = useState(true); 
-
   const [lineProfile, setLineProfile] = useState(null);
   const [date, setDate] = useState(getTodayString());
   const [userName, setUserName] = useState(''); 
@@ -174,7 +90,6 @@ export default function App() {
   const [aiResponse, setAiResponse] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   
-  // ✨ 後台與名單狀態
   const [savedRecords, setSavedRecords] = useState([]);
   const [recordsLoaded, setRecordsLoaded] = useState(false); 
   const [showRecordsView, setShowRecordsView] = useState(false);
@@ -192,12 +107,10 @@ export default function App() {
   const [showBasicConfig, setShowBasicConfig] = useState(true);
   const [showAdvancedData, setShowAdvancedData] = useState(true);
 
-  // 🚀 URL 參數跳轉 (常駐管理後台按鈕)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('tab') === 'daily') setActiveTab('daily');
-      
       if (urlParams.get('panel') === 'admin') {
         setShowAdminButton(true);
         localStorage.setItem('bxc_show_admin_btn', 'true');
@@ -219,27 +132,19 @@ export default function App() {
     const initLiff = async () => {
       try {
         await liff.init({ liffId: '2009406742-2WUZO3mQ' });
-        // LIFF 已經登入，或者使用者是在 LINE App 內打開
         if (liff.isLoggedIn()) {
           const profile = await liff.getProfile();
           setLineProfile(profile);
-
           const lineEmail = `${profile.userId}@line.bxc.com`;
           const linePassword = `Liff_${profile.userId}_Secret`; 
-
-          // 背景幫使用者無感登入或註冊 Firebase
           try {
             const cred = await signInWithEmailAndPassword(auth, lineEmail, linePassword);
-            await setDoc(doc(db, "users", cred.user.uid), {
-                email: lineEmail, displayName: profile.displayName, updatedAt: Date.now()
-            }, { merge: true });
+            await setDoc(doc(db, "users", cred.user.uid), { email: lineEmail, displayName: profile.displayName, updatedAt: Date.now() }, { merge: true });
           } catch (error) {
             if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-login-credentials') {
               try {
                  const cred = await createUserWithEmailAndPassword(auth, lineEmail, linePassword);
-                 await setDoc(doc(db, "users", cred.user.uid), {
-                     email: lineEmail, displayName: profile.displayName, isAdmin: false, createdAt: Date.now()
-                 });
+                 await setDoc(doc(db, "users", cred.user.uid), { email: lineEmail, displayName: profile.displayName, isAdmin: false, createdAt: Date.now() });
               } catch (e) {}
             }
           }
@@ -264,7 +169,6 @@ export default function App() {
         if (savedName) setUserName(savedName);
         else if (currentUser.displayName) setUserName(currentUser.displayName);
         else if (currentUser.email) setUserName(currentUser.email.split('@')[0]);
-
         if (savedDate && savedDate.length > 5) setDate(savedDate);
 
         try {
@@ -278,7 +182,6 @@ export default function App() {
              const dbData = userSnap.data();
              const adminStatus = dbData.isAdmin === true || String(dbData.isAdmin).toLowerCase() === 'true';
              updateAdminState(adminStatus);
-             
              if (!dbData.createdAt && currentUser.metadata && currentUser.metadata.creationTime) {
                  await setDoc(userRef, { createdAt: new Date(currentUser.metadata.creationTime).getTime() }, { merge: true });
              }
@@ -290,13 +193,9 @@ export default function App() {
           cloudRecords.sort((a, b) => b.timestamp - a.timestamp);
           setSavedRecords(cloudRecords);
           setRecordsLoaded(true); 
-        } catch (error) {
-          setRecordsLoaded(true); 
-        }
+        } catch (error) { setRecordsLoaded(true); }
       } else {
-        setSavedRecords([]); 
-        setRecordsLoaded(false); 
-        updateAdminState(false);
+        setSavedRecords([]); setRecordsLoaded(false); updateAdminState(false);
       }
     });
     return () => unsubscribe();
@@ -319,37 +218,25 @@ export default function App() {
     }
   }, [date, userName, user, recordsLoaded, savedRecords.length]);
 
-  // 🚀 防駭客：強制連線伺服器驗證權限，不理會本地快取！
   const handleAdminClick = async () => {
-    if (showAdminView) {
-        setShowAdminView(false);
-        return;
-    }
+    if (showAdminView) { setShowAdminView(false); return; }
     if (!user) return alert("🔄 系統載入中，請稍候一秒再按！");
-    
     try {
         let realIsAdmin = isAdmin; 
-        
         if (!realIsAdmin) {
-            // 強制繞過快取向伺服器索取最新的驗證權限
             const userRef = doc(db, "users", user.uid);
             const userSnap = await getDocFromServer(userRef);
             const dbData = userSnap.data();
             realIsAdmin = dbData && (dbData.isAdmin === true || String(dbData.isAdmin).toLowerCase() === 'true');
             if (realIsAdmin) updateAdminState(true);
         }
-
         if (realIsAdmin) {
             fetchAllUsers();
-            setShowAdminView(true);
-            setShowRecordsView(false);
-            setAdminViewingRecord(null);
+            setShowAdminView(true); setShowRecordsView(false); setAdminViewingRecord(null);
         } else {
             alert("⚠️ 權限不足：您的帳號尚未開通系統管理員權限！\n請聯絡系統負責人開通。");
         }
-    } catch (error) {
-        alert("⚠️ 權限驗證失敗，請檢查網路連線狀態！");
-    }
+    } catch (error) { alert("⚠️ 權限驗證失敗，請檢查網路連線狀態！"); }
   };
 
   const fetchAllUsers = async () => {
@@ -359,9 +246,7 @@ export default function App() {
       querySnapshot.forEach((d) => { users.push({ id: d.id, ...d.data() }); });
       users.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       setAllUsersList(users);
-    } catch(e) {
-      alert("⚠️ 無法讀取會員名單，請確定 Firebase Firestore 規則已設定為 allow read, write: if true;");
-    }
+    } catch(e) { alert("⚠️ 無法讀取會員名單，請確定 Firebase Firestore 規則已正確設定"); }
   };
 
   const loadUserRecords = async (targetUser) => {
@@ -370,60 +255,21 @@ export default function App() {
       const snapshot = await getDocs(recordsRef);
       const r = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       r.sort((a, b) => b.timestamp - a.timestamp);
-      setViewingUserRecords(r);
-      setViewingUser(targetUser);
-    } catch (e) {
-      alert("⚠️ 讀取客戶紀錄失敗！");
-    }
+      setViewingUserRecords(r); setViewingUser(targetUser);
+    } catch (e) { alert("⚠️ 讀取客戶紀錄失敗！"); }
   };
 
   const removeAdmin = async (targetUser) => {
     if(!window.confirm(`確定要移除 ${getSafeName(targetUser)} 的管理員權限嗎？`)) return;
-    try {
-      await updateDoc(doc(db, "users", targetUser.id), { isAdmin: false });
-      fetchAllUsers(); 
-    } catch (e) {
-      alert("⚠️ 移除失敗，請檢查資料庫權限！");
-    }
+    try { await updateDoc(doc(db, "users", targetUser.id), { isAdmin: false }); fetchAllUsers(); } 
+    catch (e) { alert("⚠️ 移除失敗，請檢查資料庫權限！"); }
   };
 
-  // 🚀 純淨版 LINE 一鍵登入觸發按鈕
   const handleLineLogin = () => { if (!liff.isLoggedIn()) liff.login(); };
 
-  const get13MoonDateInfo = (inputDate) => {
-    if (!inputDate || inputDate.trim() === '') return { display: "未知日期", key: "0-0", moon: 0, day: 0 };
-    const dateObj = new Date(inputDate + 'T00:00:00Z');
-    if (isNaN(dateObj.getTime())) return { display: "未知日期", key: "0-0", moon: 0, day: 0 };
-
-    let year = dateObj.getUTCFullYear();
-    let startYear = year;
-    if (dateObj.getUTCMonth() < 6 || (dateObj.getUTCMonth() === 6 && dateObj.getUTCDate() < 26)) { startYear--; }
-    const startDate = new Date(Date.UTC(startYear, 6, 26)); 
-    const diffTime = Math.abs(dateObj - startDate);
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 364) return { display: "無時間日 (Day Out of Time)", key: "0-0", moon: 0, day: 0 };
-    const moon = Math.floor(diffDays / 28) + 1;
-    const day = (diffDays % 28) + 1;
-    const moonNames = ["磁性", "月亮", "電力", "自我存在", "超頻", "韻律", "共鳴", "銀河星系", "太陽", "行星", "光譜", "水晶", "宇宙"];
-    return { display: `${moonNames[moon - 1]}之月 第 ${day} 天`, key: `${moon}-${day}`, moon, day };
-  };
-
-  const calculateKin = (inputDate) => {
-    if (!inputDate || inputDate.trim() === '') return 260; 
-    const dateObj = new Date(inputDate + 'T00:00:00Z');
-    if (isNaN(dateObj.getTime())) return 260; 
-    const year = dateObj.getUTCFullYear();
-    const month = dateObj.getUTCMonth() + 1; 
-    const day = dateObj.getUTCDate();
-    const monthDays = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-    let dayOfYear = monthDays[month - 1] + day;
-    if (month === 2 && day === 29) { dayOfYear = monthDays[1] + 28; }
-    let currentKin = (232 + year * 105 + dayOfYear) % 260;
-    if (currentKin === 0) currentKin = 260;
-    return currentKin;
-  };
-
+  // ==========================================
+  // 計算星系印記資料
+  // ==========================================
   const kinNumber = calculateKin(date);
   const toneNumber = ((kinNumber - 1) % 13) + 1;
   const bottomToneNumber = 14 - toneNumber;
@@ -442,10 +288,6 @@ export default function App() {
   const hiddenSeal = seals[hiddenIndex] || seals[0];
   const guideSeal = seals[guideIndex] || seals[0];
   const wavespellSeal = seals[wavespellIndex] || seals[0];
-
-  const getKinFromIndexAndTone = (sealIdx, tone) => {
-    for (let k = 1; k <= 260; k++) { if (k % 20 === sealIdx && ((k - 1) % 13) + 1 === tone) return k; } return 260;
-  };
 
   const moonInfo = get13MoonDateInfo(date);
   const moonDateDisplay = moonInfo.display;
@@ -477,7 +319,6 @@ export default function App() {
       for (let r = 0; r < 21; r++) for (let c = 0; c < 21; c++) if (spaceMatrix[r][c] === k) return { r, c };
       return { r: 0, c: 0 };
     };
-
     const getSynchronicCoordinate = (k) => {
       for (let r = 0; r < 21; r++) { if (r === 10) continue; for (let c = 4; c <= 16; c++) if (synchronicMatrix[r][c] === k) return { r, c }; }
       return { r: 0, c: 0 };
@@ -559,7 +400,6 @@ export default function App() {
       const stateRecord = { id: docId, ...newRecordData };
       if (existingIndex >= 0) newRecords[existingIndex] = stateRecord;
       else newRecords.unshift(stateRecord);
-
       newRecords.sort((a, b) => b.timestamp - a.timestamp);
       setSavedRecords(newRecords);
       if (!silent) alert(`✅ 已成功將 ${userName.trim()} 的資料同步至雲端資料庫！`);
@@ -629,7 +469,6 @@ export default function App() {
 
       {!user ? (
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', width: '100%' }}>
-          {/* 🚀 純淨化：專注於 LINE 登入的高質感介面 */}
           <div style={{ backgroundColor: '#fff', padding: '50px 30px', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', width: '100%', maxWidth: '350px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <img src="/Bxc Balance LOGO.png" alt="LOGO" style={{ width: '120px', marginBottom: '25px' }} />
             <h2 style={{ color: '#d81b60', margin: '0 0 10px 0', letterSpacing: '1px' }}>登入星系矩陣</h2>
@@ -655,7 +494,6 @@ export default function App() {
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
-              {/* 🌟 永遠常駐的按鈕（按下去才去伺服器驗證權限） */}
               {showAdminButton && (
                 <button onClick={handleAdminClick} style={{ padding: '6px 10px', fontSize: '12px', backgroundColor: showAdminView ? '#1e3a8a' : '#fff', border: '1px solid #1e3a8a', color: showAdminView ? '#fff' : '#1e3a8a', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
                   {showAdminView ? '✕ 關閉管理' : '⚙️ 管理後台'}
@@ -678,7 +516,6 @@ export default function App() {
             </div>
           )}
 
-          {/* 🛡️ 金鐘罩防護：嚴格檢查 user 和 u */}
           {showAdminView ? (
             <div style={{ width: '100%', maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <h3 style={{ color: '#1e3a8a', margin: '0 0 10px 0', textAlign: 'center', letterSpacing: '1px' }}>⚙️ 系統管理後台</h3>
@@ -701,7 +538,6 @@ export default function App() {
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           <button onClick={() => loadUserRecords(u)} style={{ background: '#e0f2fe', color: '#0284c7', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>查看紀錄</button>
-                          {/* 🛡️ user 確認機制 */}
                           {u.isAdmin && user && u.id !== user.uid && (
                             <button onClick={() => removeAdmin(u)} style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer' }}>移除權限</button>
                           )}

@@ -89,11 +89,11 @@ export default function App() {
   const [previewImage, setPreviewImage] = useState(null);
   const [aiResponse, setAiResponse] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
-  
+
   const [savedRecords, setSavedRecords] = useState([]);
   const [recordsLoaded, setRecordsLoaded] = useState(false); 
   const [showRecordsView, setShowRecordsView] = useState(false);
-  
+
   const [showAdminButton, setShowAdminButton] = useState(localStorage.getItem('bxc_show_admin_btn') === 'true');
   const [isAdmin, setIsAdmin] = useState(localStorage.getItem('bxc_admin') === 'true');
   const [showAdminView, setShowAdminView] = useState(false);
@@ -131,7 +131,7 @@ export default function App() {
 
     const initLiff = async () => {
       try {
-        await liff.init({ liffId: '2009406742-2WUZO3mQ' });
+        await liff.init({ liffId: import.meta.env.VITE_LIFF_ID });
         if (liff.isLoggedIn()) {
           const profile = await liff.getProfile();
           setLineProfile(profile);
@@ -165,7 +165,7 @@ export default function App() {
         setIsInitializing(false); 
         const savedName = localStorage.getItem(`maya_name_${currentUser.uid}`);
         const savedDate = localStorage.getItem(`maya_date_${currentUser.uid}`);
-        
+
         if (savedName) setUserName(savedName);
         else if (currentUser.displayName) setUserName(currentUser.displayName);
         else if (currentUser.email) setUserName(currentUser.email.split('@')[0]);
@@ -174,7 +174,7 @@ export default function App() {
         try {
           const userRef = doc(db, "users", currentUser.uid);
           const userSnap = await getDoc(userRef);
-          
+
           if (!userSnap.exists()) {
              const safeName = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : "旅人");
              await setDoc(userRef, { email: currentUser.email || "", displayName: safeName, isAdmin: false, createdAt: Date.now() }, { merge: true });
@@ -481,7 +481,7 @@ export default function App() {
         </div>
       ) : (
         <div style={{ padding: '15px', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          
+
           {/* 頂部選單 */}
           <div style={{ width: '100%', maxWidth: '380px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', padding: '0 5px', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -624,7 +624,7 @@ export default function App() {
                     <button onClick={() => handleSaveRecord(false)} style={{ flex: 1, padding: '10px 5px', fontSize: '13px', fontWeight: 'bold', color: '#fff', backgroundColor: '#26a69a', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(38, 166, 154, 0.3)', boxSizing: 'border-box' }}>💾 儲存至雲端</button>
                   )}
                 </div>
-                
+
                 <div style={{ display: 'flex', gap: '15px', width: '100%', justifyContent: 'center', marginTop: '-5px' }}>
                   <label style={{ fontSize: '12px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}><input type="checkbox" checked={showBasicConfig} onChange={() => setShowBasicConfig(!showBasicConfig)} style={{ accentColor: '#d81b60' }} />基礎能量配置</label>
                   <label style={{ fontSize: '12px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}><input type="checkbox" checked={showAdvancedData} onChange={() => setShowAdvancedData(!showAdvancedData)} style={{ accentColor: '#d81b60' }} />高階星際數據</label>

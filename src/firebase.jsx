@@ -1,19 +1,32 @@
-import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB5IN0d5Y7FNjE2lrZjVzJ8itu6KBXMGWE",
-  authDomain: "maya-9a168.firebaseapp.com",
-  projectId: "maya-9a168",
-  storageBucket: "maya-9a168.firebasestorage.app",
-  messagingSenderId: "604233702653",
-  appId: "1:604233702653:web:f303ef708d0ad9c49ef294",
-  measurementId: "G-0T1V5XL8LK"
-};
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+}; // 👈 就是這個大括號跟分號剛才不小心漏掉了！
 
-const app = initializeApp(firebaseConfig);
+let app, auth, db;
 
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
-export const db = getFirestore(app);
+try {
+  // 🛡️ 檢查金鑰是否有被 Replit 讀到
+  if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'undefined') {
+    throw new Error("找不到 Firebase API Key！請確認 Replit 的 Secrets 工具是否有正確設定。");
+  }
+
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  console.log("✅ Firebase 初始化成功！");
+} catch (error) {
+  console.error("❌ Firebase 初始化失敗：", error);
+  alert("系統發生錯誤：" + error.message);
+}
+
+export { auth, db };

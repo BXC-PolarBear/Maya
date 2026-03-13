@@ -6,7 +6,6 @@ import './App.css';
 import liff from '@line/liff';
 import { auth, db } from './firebase'; 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
-// 🌟 這裡新增了 query 和 orderBy 來向 Firebase 索取「已排序」的資料
 import { collection, doc, setDoc, getDocs, deleteDoc, getDoc, updateDoc, getDocFromServer, query, orderBy } from 'firebase/firestore';
 
 import { 
@@ -15,6 +14,9 @@ import {
   get13MoonDateInfo, calculateKin, getKinFromIndexAndTone 
 } from './mayaEngine';
 import { timeMatrix, spaceMatrix, synchronicMatrix } from './Matrix441';
+
+import BoardGameRecord from './BoardGameRecord';
+import GameLobbyManager from './GameLobbyManager';
 
 const getSafeName = (userObj) => {
   if (!userObj) return "會員";
@@ -87,11 +89,11 @@ export default function App() {
   const [previewImage, setPreviewImage] = useState(null);
   const [aiResponse, setAiResponse] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
-  
+
   const [savedRecords, setSavedRecords] = useState([]);
   const [recordsLoaded, setRecordsLoaded] = useState(false); 
   const [showRecordsView, setShowRecordsView] = useState(false);
-  
+
   const [showAdminButton, setShowAdminButton] = useState(localStorage.getItem('bxc_show_admin_btn') === 'true');
   const [isAdmin, setIsAdmin] = useState(localStorage.getItem('bxc_admin') === 'true');
   const [showAdminView, setShowAdminView] = useState(false);
@@ -104,6 +106,11 @@ export default function App() {
   const [selectedRecordId, setSelectedRecordId] = useState('current'); 
   const [showBasicConfig, setShowBasicConfig] = useState(true);
   const [showAdvancedData, setShowAdvancedData] = useState(true);
+
+  // 🌟 桌遊與大廳相關狀態
+  const [activeGameRoom, setActiveGameRoom] = useState(null);
+  const [isGameUnlocked, setIsGameUnlocked] = useState(localStorage.getItem('bxc_game_unlocked') === 'true');
+  const [inviteCode, setInviteCode] = useState('');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -163,7 +170,7 @@ export default function App() {
         setIsInitializing(false); 
         const savedName = localStorage.getItem(`maya_name_${currentUser.uid}`);
         const savedDate = localStorage.getItem(`maya_date_${currentUser.uid}`);
-        
+
         if (savedName) setUserName(savedName);
         else if (currentUser.displayName) setUserName(currentUser.displayName);
         else if (currentUser.email) setUserName(currentUser.email.split('@')[0]);
@@ -172,7 +179,7 @@ export default function App() {
         try {
           const userRef = doc(db, "users", currentUser.uid);
           const userSnap = await getDoc(userRef);
-          
+
           if (!userSnap.exists()) {
              const safeName = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : "旅人");
              await setDoc(userRef, { email: currentUser.email || "", displayName: safeName, isAdmin: false, createdAt: Date.now() }, { merge: true });
@@ -185,12 +192,11 @@ export default function App() {
              }
           }
 
-          // 🌟 效能升級：利用 Firebase orderBy 讓伺服器幫我們排好序再傳過來
           const recordsRef = collection(db, "users", currentUser.uid, "records");
           const q = query(recordsRef, orderBy("timestamp", "desc"));
           const snapshot = await getDocs(q);
           const cloudRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          
+
           setSavedRecords(cloudRecords);
           setRecordsLoaded(true); 
         } catch (error) { setRecordsLoaded(true); }
@@ -234,49 +240,41 @@ export default function App() {
             fetchAllUsers();
             setShowAdminView(true); setShowRecordsView(false); setAdminViewingRecord(null);
         } else {
-            alert("⚠️ 權限不足：您的帳號尚未開通系統管理員權限！\n請聯絡系統負責人開通。");
+            alert("⚠️ 權限不足！");
         }
     } catch (error) { alert("⚠️ 權限驗證失敗，請檢查網路連線狀態！"); }
   };
 
   const fetchAllUsers = async () => {
     try {
-      // 🌟 效能升級：把排序交給 Firebase 伺服器
       const usersRef = collection(db, "users");
       const q = query(usersRef, orderBy("createdAt", "desc"));
       const querySnapshot = await getDocs(q);
-      
       const users = [];
       querySnapshot.forEach((d) => { users.push({ id: d.id, ...d.data() }); });
       setAllUsersList(users);
-    } catch(e) {
-      alert("⚠️ 無法讀取會員名單，請確定 Firebase Firestore 規則已正確設定"); 
-    }
+    } catch(e) { }
   };
 
   const loadUserRecords = async (targetUser) => {
     try {
-      // 🌟 效能升級：把排序交給 Firebase 伺服器
       const recordsRef = collection(db, "users", targetUser.id, "records");
       const q = query(recordsRef, orderBy("timestamp", "desc"));
       const snapshot = await getDocs(q);
-      
       const r = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setViewingUserRecords(r); setViewingUser(targetUser);
-    } catch (e) { alert("⚠️ 讀取客戶紀錄失敗！"); }
+    } catch (e) { }
   };
 
   const removeAdmin = async (targetUser) => {
     if(!window.confirm(`確定要移除 ${getSafeName(targetUser)} 的管理員權限嗎？`)) return;
     try { await updateDoc(doc(db, "users", targetUser.id), { isAdmin: false }); fetchAllUsers(); } 
-    catch (e) { alert("⚠️ 移除失敗，請檢查資料庫權限！"); }
+    catch (e) { }
   };
 
   const handleLineLogin = () => { if (!liff.isLoggedIn()) liff.login(); };
 
-  // ==========================================
   // 計算星系印記資料
-  // ==========================================
   const kinNumber = calculateKin(date);
   const toneNumber = ((kinNumber - 1) % 13) + 1;
   const bottomToneNumber = 14 - toneNumber;
@@ -388,33 +386,21 @@ export default function App() {
     const silent = isSilent === true;
     if (!userName.trim() && !silent) return alert("請先在上方輸入「姓名」才能儲存喔！");
     if (!userName.trim() && silent) return; 
-    if (!user) {
-       if(!silent) alert("請先登入才能使用雲端儲存功能！");
-       return;
-    }
+    if (!user) { if(!silent) alert("請先登入才能使用雲端儲存功能！"); return; }
 
     const existingIndex = savedRecords.findIndex(r => r.name === userName.trim());
     const docId = existingIndex >= 0 ? savedRecords[existingIndex].id : Date.now().toString();
-
-    const newRecordData = {
-      name: userName.trim(), date: date, kin: kinNumber,
-      sealName: mainSeal.name, toneName: currentToneName, timestamp: Date.now()
-    };
+    const newRecordData = { name: userName.trim(), date: date, kin: kinNumber, sealName: mainSeal.name, toneName: currentToneName, timestamp: Date.now() };
 
     try {
       await setDoc(doc(db, "users", user.uid, "records", docId), newRecordData);
       let newRecords = [...savedRecords];
       const stateRecord = { id: docId, ...newRecordData };
-      if (existingIndex >= 0) newRecords[existingIndex] = stateRecord;
-      else newRecords.unshift(stateRecord);
-
-      // 本地狀態還是排序一下比較保險，但源頭已經是排序好的了
+      if (existingIndex >= 0) newRecords[existingIndex] = stateRecord; else newRecords.unshift(stateRecord);
       newRecords.sort((a, b) => b.timestamp - a.timestamp);
       setSavedRecords(newRecords);
       if (!silent) alert(`✅ 已成功將 ${userName.trim()} 的資料同步至雲端資料庫！`);
-    } catch (error) {
-      if (!silent) alert("雲端儲存失敗，請檢查資料庫權限設定！");
-    }
+    } catch (error) { if (!silent) alert("雲端儲存失敗，請檢查資料庫權限設定！"); }
   };
 
   const handleDeleteRecord = async (idToRemove) => {
@@ -463,71 +449,81 @@ export default function App() {
     } catch (error) {}
   };
 
+  // 🌟 核心：為大廳產生「玩家完整資訊」的輔助函式
+  const buildPlayerContext = (recordId) => {
+    let rec;
+    if (recordId === 'current') {
+      rec = { name: userName, date: date, kin: kinNumber };
+    } else {
+      rec = savedRecords.find(r => r.id === recordId) || { name: userName, date: date, kin: kinNumber };
+    }
+    const k = parseInt(rec.kin) || 1;
+    const mIdx = k % 20;
+    const tNum = ((k - 1) % 13) + 1;
+    const wsIdx = (mIdx - (tNum - 1) + 260) % 20;
+    const efIdx = mIdx % 5 || 0;
+    return {
+      name: rec.name || '旅人',
+      date: rec.date || '未知',
+      kin: k,
+      wavespell: seals[wsIdx] ? seals[wsIdx].name : '未知',
+      earthFamily: earthFamilies[efIdx] || '未知'
+    };
+  };
+
   if (isInitializing) {
     return (
       <div style={{ background: 'linear-gradient(135deg, #fff0f5 0%, #fce4ec 100%)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif' }}>
         <img src="/Bxc Balance LOGO.png" alt="LOGO" style={{ width: '100px', marginBottom: '25px', opacity: 0.8 }} />
         <h3 style={{ color: '#d81b60', margin: '0 0 10px 0', letterSpacing: '2px' }}>✨ 宇宙能量讀取中 ✨</h3>
-        <p style={{ color: '#888', fontSize: '13px' }}>正在為您建立專屬星系矩陣通道...</p>
       </div>
     );
   }
 
   return (
     <div style={{ background: 'linear-gradient(135deg, #fff0f5 0%, #fce4ec 100%)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'sans-serif' }}>
-
       {!user ? (
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', width: '100%' }}>
           <div style={{ backgroundColor: '#fff', padding: '50px 30px', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', width: '100%', maxWidth: '350px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <img src="/Bxc Balance LOGO.png" alt="LOGO" style={{ width: '120px', marginBottom: '25px' }} />
             <h2 style={{ color: '#d81b60', margin: '0 0 10px 0', letterSpacing: '1px' }}>登入星系矩陣</h2>
-            <p style={{ color: '#888', fontSize: '13px', marginBottom: '30px', lineHeight: '1.5' }}>請使用 LINE 帳號快速登入<br/>以儲存您的專屬星際印記</p>
-
-            <button type="button" onClick={handleLineLogin} style={{ width: '100%', padding: '14px', fontSize: '16px', fontWeight: 'bold', color: '#fff', backgroundColor: '#06C755', border: 'none', borderRadius: '12px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(6, 199, 85, 0.3)' }}>
-              <span style={{ fontSize: '22px' }}>💬</span>使用 LINE 一鍵登入
-            </button>
+            <button type="button" onClick={handleLineLogin} style={{ width: '100%', padding: '14px', fontSize: '16px', fontWeight: 'bold', color: '#fff', backgroundColor: '#06C755', border: 'none', borderRadius: '12px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(6, 199, 85, 0.3)' }}><span style={{ fontSize: '22px' }}>💬</span>使用 LINE 一鍵登入</button>
           </div>
         </div>
       ) : (
         <div style={{ padding: '15px', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          
-          {/* 頂部選單 */}
+
           <div style={{ width: '100%', maxWidth: '380px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', padding: '0 5px', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               {lineProfile ? (
-                <>
-                  <img src={lineProfile.pictureUrl} alt="頭貼" style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid #f8bbd0', objectFit: 'cover' }} />
-                  <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#d81b60' }}>Hi, {lineProfile.displayName}</span>
-                </>
+                <><img src={lineProfile.pictureUrl} alt="頭貼" style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid #f8bbd0', objectFit: 'cover' }} /><span style={{ fontSize: '15px', fontWeight: 'bold', color: '#d81b60' }}>Hi, {lineProfile.displayName}</span></>
               ) : ( <span style={{ fontSize: '14px', color: '#888' }}>Hi, 旅人</span> )}
             </div>
-
             <div style={{ display: 'flex', gap: '8px' }}>
-              {showAdminButton && (
-                <button onClick={handleAdminClick} style={{ padding: '6px 10px', fontSize: '12px', backgroundColor: showAdminView ? '#1e3a8a' : '#fff', border: '1px solid #1e3a8a', color: showAdminView ? '#fff' : '#1e3a8a', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-                  {showAdminView ? '✕ 關閉管理' : '⚙️ 管理後台'}
-                </button>
-              )}
-              <button onClick={() => { setShowRecordsView(!showRecordsView); setShowAdminView(false); setAdminViewingRecord(null); }} style={{ padding: '6px 10px', fontSize: '12px', backgroundColor: showRecordsView ? '#d81b60' : '#fff', border: '1px solid #d81b60', color: showRecordsView ? '#fff' : '#d81b60', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-                {showRecordsView ? '✕ 返回系統' : '📂 雲端紀錄庫'}
-              </button>
+              {showAdminButton && <button onClick={handleAdminClick} style={{ padding: '6px 10px', fontSize: '12px', backgroundColor: showAdminView ? '#1e3a8a' : '#fff', border: '1px solid #1e3a8a', color: showAdminView ? '#fff' : '#1e3a8a', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>{showAdminView ? '✕ 關閉管理' : '⚙️ 管理後台'}</button>}
+              <button onClick={() => { setShowRecordsView(!showRecordsView); setShowAdminView(false); setAdminViewingRecord(null); setActiveGameRoom(null); }} style={{ padding: '6px 10px', fontSize: '12px', backgroundColor: showRecordsView ? '#d81b60' : '#fff', border: '1px solid #d81b60', color: showRecordsView ? '#fff' : '#d81b60', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>{showRecordsView ? '✕ 返回系統' : '📂 雲端紀錄庫'}</button>
             </div>
           </div>
 
           {!showRecordsView && !showAdminView && (
             <div style={{ display: 'flex', width: '100%', maxWidth: '380px', marginBottom: '15px', backgroundColor: '#fff', borderRadius: '12px', padding: '5px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-              <button onClick={() => setActiveTab('query')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'query' ? '#ffebee' : 'transparent', color: activeTab === 'query' ? '#d81b60' : '#888', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s' }}>
+              <button onClick={() => { setActiveTab('query'); setActiveGameRoom(null); }} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'query' ? '#ffebee' : 'transparent', color: activeTab === 'query' ? '#d81b60' : '#888', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s', fontSize: '13px' }}>
                 🔍 13月亮曆查詢
               </button>
-              <button onClick={() => setActiveTab('daily')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'daily' ? '#f3e5f5' : 'transparent', color: activeTab === 'daily' ? '#8e24aa' : '#888', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s' }}>
+              <button onClick={() => { setActiveTab('daily'); setActiveGameRoom(null); }} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'daily' ? '#f3e5f5' : 'transparent', color: activeTab === 'daily' ? '#8e24aa' : '#888', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s', fontSize: '13px' }}>
                 🌟 今日宇宙能量
+              </button>
+              <button onClick={() => setActiveTab('game')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'game' ? '#e8f5e9' : 'transparent', color: activeTab === 'game' ? '#2e7d32' : '#888', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s', fontSize: '13px' }}>
+                🎲 共時旅程桌遊
               </button>
             </div>
           )}
 
+          {/* ... Admin / Cloud Records ... */}
           {showAdminView ? (
             <div style={{ width: '100%', maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <h3 style={{ color: '#1e3a8a', margin: '0 0 10px 0', textAlign: 'center', letterSpacing: '1px' }}>⚙️ 系統管理後台</h3>
+              <h3 style={{ color: '#1e3a8a', textAlign: 'center' }}>⚙️ 系統管理後台</h3>
+              {/* (Admin Panel 內容保持) */}
               {!viewingUser ? (
                 <>
                   <div style={{ background: '#fff', padding: '15px', borderRadius: '15px', textAlign: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
@@ -582,7 +578,6 @@ export default function App() {
                 </>
               )}
             </div>
-
           ) : showRecordsView ? (
             <div style={{ width: '100%', maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <h3 style={{ color: '#d81b60', margin: '0 0 10px 0', textAlign: 'center' }}>☁️ 雲端親友資料庫</h3>
@@ -606,94 +601,117 @@ export default function App() {
             </div>
 
           ) : activeTab === 'query' ? (
-            <>
-              {/* 🚀 檢視客戶紀錄專屬 Banner */}
-              {adminViewingRecord && (
-                <div style={{ width: '100%', maxWidth: '380px', backgroundColor: '#1e293b', color: '#fff', borderRadius: '12px', padding: '12px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', boxSizing: 'border-box', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>目前正在檢視會員資料</span>
-                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#f8bbd0' }}>
-                      {getSafeName(adminViewingRecord.fromUser)}
-                    </span>
-                  </div>
-                  <button onClick={() => { setAdminViewingRecord(null); setShowAdminView(true); }} style={{ backgroundColor: '#d81b60', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    ✕ 返回管理
-                  </button>
-                </div>
-              )}
-
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', marginBottom: '15px', width: '100%', maxWidth: '380px', boxSizing: 'border-box' }}>
-                <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
-                  <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="請輸入名字" style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #f8bbd0', outline: 'none', boxSizing: 'border-box', minWidth: '0' }} />
-                  <input type="date" value={date} onChange={(e) => { if(e.target.value) setDate(e.target.value); }} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #f8bbd0', outline: 'none', boxSizing: 'border-box', minWidth: '0' }} />
-                </div>
-                <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
-                  <button onClick={downloadScreenshot} style={{ flex: 1, padding: '10px 5px', fontSize: '13px', fontWeight: 'bold', color: '#fff', backgroundColor: '#ec407a', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(236, 64, 122, 0.3)', boxSizing: 'border-box' }}>📸 另存圖卡</button>
-                  {!adminViewingRecord && (
-                    <button onClick={() => handleSaveRecord(false)} style={{ flex: 1, padding: '10px 5px', fontSize: '13px', fontWeight: 'bold', color: '#fff', backgroundColor: '#26a69a', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(38, 166, 154, 0.3)', boxSizing: 'border-box' }}>💾 儲存至雲端</button>
-                  )}
-                </div>
-                
-                <div style={{ display: 'flex', gap: '15px', width: '100%', justifyContent: 'center', marginTop: '-5px' }}>
-                  <label style={{ fontSize: '12px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}><input type="checkbox" checked={showBasicConfig} onChange={() => setShowBasicConfig(!showBasicConfig)} style={{ accentColor: '#d81b60' }} />基礎能量配置</label>
-                  <label style={{ fontSize: '12px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}><input type="checkbox" checked={showAdvancedData} onChange={() => setShowAdvancedData(!showAdvancedData)} style={{ accentColor: '#d81b60' }} />高階星際數據</label>
-                </div>
-              </div>
-
-              <div ref={captureRef} style={{ backgroundColor: '#ffffff', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', width: '100%', maxWidth: '380px', padding: '25px 15px 15px 15px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-
-                <div style={{ textAlign: 'center', marginTop: '5px', marginBottom: '25px' }}>
-                  <div style={{ fontSize: '16px', color: '#f06292', letterSpacing: '2px', marginBottom: '8px' }}>✨ 星系矩陣 ✨</div>
-                  <div style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>
-                    {isDefaultName ? '此日期的主印記' : `${userName}的主印記`} {formattedDate}
-                  </div>
-                  <div style={{ fontSize: '26px', fontWeight: '800', color: '#3949ab', marginBottom: '8px' }}>KIN {kinNumber}</div>
-                  <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#5c6bc0', marginBottom: '12px' }}>
-                    {currentToneName}的{mainSeal.name}
-                  </div>
-                  <div style={{ backgroundColor: '#fcf3e3', color: '#b98f48', padding: '6px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold', display: 'inline-block' }}>
-                    {wavespellSeal.name}波符
-                  </div>
-                </div>
-
-                <div style={{ position: 'relative', border: '2px solid #e8eaf6', borderRadius: '20px', padding: '25px', backgroundColor: '#fafbff', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, auto)', gap: '15px', alignItems: 'center', justifyItems: 'center', width: '100%', boxSizing: 'border-box' }}>
-                  <div style={{ gridArea: '1 / 1 / 2 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={wavespellSeal.img} alt="波符" style={{ width: '32px' }} /><span style={labelStyle}>波符：{wavespellSeal.name}</span></div>
-                  <div style={{ gridArea: '1 / 2 / 2 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={guideSeal.img} alt="引導" style={{ width: '48px' }} /><span style={labelStyle}>引導：{guideSeal.name}</span></div>
-                  <div style={{ gridArea: '2 / 1 / 3 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={challengeSeal.img} alt="挑戰" style={{ width: '48px' }} /><span style={labelStyle}>挑戰：{challengeSeal.name}</span></div>
-                  <div style={{ gridArea: '2 / 2 / 3 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={`/tone_${toneNumber}.png`} alt={`調性 ${toneNumber}`} style={{ height: '12px', marginBottom: '6px', objectFit: 'contain' }} /><img src={mainSeal.img} alt="主印記" style={{ width: '72px' }} /><img src={`/tone_${bottomToneNumber}.png`} alt={`推動調性 ${bottomToneNumber}`} style={{ height: '12px', marginTop: '6px', objectFit: 'contain' }} /><span style={labelStyle}>{mainSeal.name}</span></div>
-                  <div style={{ gridArea: '2 / 3 / 3 / 4', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={supportSeal.img} alt="支持" style={{ width: '48px' }} /><span style={labelStyle}>支持：{supportSeal.name}</span></div>
-                  <div style={{ gridArea: '3 / 2 / 4 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={hiddenSeal.img} alt="隱藏推動" style={{ width: '48px' }} /><span style={labelStyle}>隱藏推動：{hiddenSeal.name}</span></div>
-                </div>
-
-                {showBasicConfig && (
-                  <div style={reportCardStyle}>
-                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#3949ab', marginBottom: '15px', textAlign: 'center', letterSpacing: '1px' }}>基礎能量配置</div>
-                    <div style={reportRowStyle}><div style={reportLabelStyle}>13月亮曆</div><div style={{ ...reportValueStyle, color: '#3949ab' }}>{moonDateDisplay}</div></div>
-                    <div style={reportRowStyle}><div style={reportLabelStyle}>所屬城堡</div><div style={{ ...reportValueStyle, color: castleColor }}>⬤ {castleName}</div></div>
-                    <div style={reportRowStyle}><div style={reportLabelStyle}>地球家族</div><div style={reportValueStyle}>{earthFamilyName}</div></div>
-                    <div style={reportRowStyle}><div style={reportLabelStyle}>引導</div><div style={{...reportValueStyle, color: getSealColor(guideIndex)}}>{guideSeal.name}</div></div>
-                    <div style={reportRowStyle}><div style={reportLabelStyle}>支持</div><div style={{...reportValueStyle, color: getSealColor(supportIndex)}}>{supportSeal.name}</div></div>
-                    <div style={reportRowStyle}><div style={reportLabelStyle}>挑戰</div><div style={{...reportValueStyle, color: getSealColor(challengeIndex)}}>{challengeSeal.name}</div></div>
-                    <div style={{...reportRowStyle, borderBottom: 'none'}}><div style={reportLabelStyle}>推動</div><div style={{...reportValueStyle, color: getSealColor(hiddenIndex)}}>{fullHiddenName} (Kin {fullHiddenKin})</div></div>
+             <div style={{ width: '100%', maxWidth: '380px' }}>
+                {adminViewingRecord && (
+                  <div style={{ width: '100%', maxWidth: '380px', backgroundColor: '#1e293b', color: '#fff', borderRadius: '12px', padding: '12px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', boxSizing: 'border-box', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>目前正在檢視會員資料</span>
+                      <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#f8bbd0' }}>
+                        {getSafeName(adminViewingRecord.fromUser)}
+                      </span>
+                    </div>
+                    <button onClick={() => { setAdminViewingRecord(null); setShowAdminView(true); }} style={{ backgroundColor: '#d81b60', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+                      ✕ 返回管理
+                    </button>
                   </div>
                 )}
 
-                {showAdvancedData && (
-                  <div style={{...reportCardStyle, backgroundColor: '#fff0f5', borderColor: '#f8bbd0', padding: '20px 15px'}}>
-                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#d81b60', marginBottom: '15px', textAlign: 'center', letterSpacing: '1px' }}>高階星際數據</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', width: '100%' }}>
-                      <MiniOracleCard title="PSI 記憶" kinNum={psiKinNum} kinDetails={getAdvancedKinDetails(psiKinNum)} oracleDetails={getOracleDetails(psiKinNum)} />
-                      <MiniOracleCard title="女神印記" kinNum={goddessKinNum} kinDetails={goddessKinDetails} oracleDetails={getOracleDetails(goddessKinNum)} />
-                      <MiniOracleCard title="對等 KIN" kinNum={eqKinNum} kinDetails={eqKinDetails} oracleDetails={getOracleDetails(eqKinNum)} />
-                      <MiniOracleCard title="HK21 對等" kinNum={hk21KinNum} kinDetails={hk21Details} oracleDetails={getOracleDetails(hk21KinNum)} />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', marginBottom: '15px', width: '100%', maxWidth: '380px', boxSizing: 'border-box' }}>
+                  <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+                    <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="請輸入名字" style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #f8bbd0', outline: 'none', boxSizing: 'border-box', minWidth: '0' }} />
+                    <input type="date" value={date} onChange={(e) => { if(e.target.value) setDate(e.target.value); }} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #f8bbd0', outline: 'none', boxSizing: 'border-box', minWidth: '0' }} />
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                    <button onClick={downloadScreenshot} style={{ flex: 1, padding: '10px 5px', fontSize: '13px', fontWeight: 'bold', color: '#fff', backgroundColor: '#ec407a', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(236, 64, 122, 0.3)', boxSizing: 'border-box' }}>📸 另存圖卡</button>
+                    {!adminViewingRecord && (
+                      <button onClick={() => handleSaveRecord(false)} style={{ flex: 1, padding: '10px 5px', fontSize: '13px', fontWeight: 'bold', color: '#fff', backgroundColor: '#26a69a', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(38, 166, 154, 0.3)', boxSizing: 'border-box' }}>💾 儲存至雲端</button>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '15px', width: '100%', justifyContent: 'center', marginTop: '-5px' }}>
+                    <label style={{ fontSize: '12px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}><input type="checkbox" checked={showBasicConfig} onChange={() => setShowBasicConfig(!showBasicConfig)} style={{ accentColor: '#d81b60' }} />基礎能量配置</label>
+                    <label style={{ fontSize: '12px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}><input type="checkbox" checked={showAdvancedData} onChange={() => setShowAdvancedData(!showAdvancedData)} style={{ accentColor: '#d81b60' }} />高階星際數據</label>
+                  </div>
+                </div>
+
+                <div ref={captureRef} style={{ backgroundColor: '#ffffff', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', width: '100%', maxWidth: '380px', padding: '25px 15px 15px 15px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={{ textAlign: 'center', marginTop: '5px', marginBottom: '25px' }}>
+                    <div style={{ fontSize: '16px', color: '#f06292', letterSpacing: '2px', marginBottom: '8px' }}>✨ 星系矩陣 ✨</div>
+                    <div style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>
+                      {isDefaultName ? '此日期的主印記' : `${userName}的主印記`} {formattedDate}
+                    </div>
+                    <div style={{ fontSize: '26px', fontWeight: '800', color: '#3949ab', marginBottom: '8px' }}>KIN {kinNumber}</div>
+                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#5c6bc0', marginBottom: '12px' }}>
+                      {currentToneName}的{mainSeal.name}
+                    </div>
+                    <div style={{ backgroundColor: '#fcf3e3', color: '#b98f48', padding: '6px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold', display: 'inline-block' }}>
+                      {wavespellSeal.name}波符
                     </div>
                   </div>
-                )}
 
-                <div style={{ marginTop: '20px', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                  <img src="/Bxc Balance LOGO.png" alt="Bxc Balance LOGO" style={{ width: '120px', height: 'auto', opacity: 0.8, transform: 'translateX(-10px)' }} />
+                  <div style={{ position: 'relative', border: '2px solid #e8eaf6', borderRadius: '20px', padding: '25px', backgroundColor: '#fafbff', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, auto)', gap: '15px', alignItems: 'center', justifyItems: 'center', width: '100%', boxSizing: 'border-box' }}>
+                    <div style={{ gridArea: '1 / 1 / 2 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={wavespellSeal.img} alt="波符" style={{ width: '32px' }} /><span style={labelStyle}>波符：{wavespellSeal.name}</span></div>
+                    <div style={{ gridArea: '1 / 2 / 2 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={guideSeal.img} alt="引導" style={{ width: '48px' }} /><span style={labelStyle}>引導：{guideSeal.name}</span></div>
+                    <div style={{ gridArea: '2 / 1 / 3 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={challengeSeal.img} alt="挑戰" style={{ width: '48px' }} /><span style={labelStyle}>挑戰：{challengeSeal.name}</span></div>
+                    <div style={{ gridArea: '2 / 2 / 3 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={`/tone_${toneNumber}.png`} alt={`調性 ${toneNumber}`} style={{ height: '12px', marginBottom: '6px', objectFit: 'contain' }} /><img src={mainSeal.img} alt="主印記" style={{ width: '72px' }} /><img src={`/tone_${bottomToneNumber}.png`} alt={`推動調性 ${bottomToneNumber}`} style={{ height: '12px', marginTop: '6px', objectFit: 'contain' }} /><span style={labelStyle}>{mainSeal.name}</span></div>
+                    <div style={{ gridArea: '2 / 3 / 3 / 4', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={supportSeal.img} alt="支持" style={{ width: '48px' }} /><span style={labelStyle}>支持：{supportSeal.name}</span></div>
+                    <div style={{ gridArea: '3 / 2 / 4 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={hiddenSeal.img} alt="隱藏推動" style={{ width: '48px' }} /><span style={labelStyle}>隱藏推動：{hiddenSeal.name}</span></div>
+                  </div>
+
+                  {showBasicConfig && (
+                    <div style={reportCardStyle}>
+                      <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#3949ab', marginBottom: '15px', textAlign: 'center', letterSpacing: '1px' }}>基礎能量配置</div>
+                      <div style={reportRowStyle}><div style={reportLabelStyle}>13月亮曆</div><div style={{ ...reportValueStyle, color: '#3949ab' }}>{moonDateDisplay}</div></div>
+                      <div style={reportRowStyle}><div style={reportLabelStyle}>所屬城堡</div><div style={{ ...reportValueStyle, color: castleColor }}>⬤ {castleName}</div></div>
+                      <div style={reportRowStyle}><div style={reportLabelStyle}>地球家族</div><div style={reportValueStyle}>{earthFamilyName}</div></div>
+                      <div style={reportRowStyle}><div style={reportLabelStyle}>引導</div><div style={{...reportValueStyle, color: getSealColor(guideIndex)}}>{guideSeal.name}</div></div>
+                      <div style={reportRowStyle}><div style={reportLabelStyle}>支持</div><div style={{...reportValueStyle, color: getSealColor(supportIndex)}}>{supportSeal.name}</div></div>
+                      <div style={reportRowStyle}><div style={reportLabelStyle}>挑戰</div><div style={{...reportValueStyle, color: getSealColor(challengeIndex)}}>{challengeSeal.name}</div></div>
+                      <div style={{...reportRowStyle, borderBottom: 'none'}}><div style={reportLabelStyle}>推動</div><div style={{...reportValueStyle, color: getSealColor(hiddenIndex)}}>{fullHiddenName} (Kin {fullHiddenKin})</div></div>
+                    </div>
+                  )}
+
+                  {showAdvancedData && (
+                    <div style={{...reportCardStyle, backgroundColor: '#fff0f5', borderColor: '#f8bbd0', padding: '20px 15px'}}>
+                      <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#d81b60', marginBottom: '15px', textAlign: 'center', letterSpacing: '1px' }}>高階星際數據</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', width: '100%' }}>
+                        <MiniOracleCard title="PSI 記憶" kinNum={psiKinNum} kinDetails={getAdvancedKinDetails(psiKinNum)} oracleDetails={getOracleDetails(psiKinNum)} />
+                        <MiniOracleCard title="女神印記" kinNum={goddessKinNum} kinDetails={goddessKinDetails} oracleDetails={getOracleDetails(goddessKinNum)} />
+                        <MiniOracleCard title="對等 KIN" kinNum={eqKinNum} kinDetails={eqKinDetails} oracleDetails={getOracleDetails(eqKinNum)} />
+                        <MiniOracleCard title="HK21 對等" kinNum={hk21KinNum} kinDetails={hk21Details} oracleDetails={getOracleDetails(hk21KinNum)} />
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: '20px', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <img src="/Bxc Balance LOGO.png" alt="Bxc Balance LOGO" style={{ width: '120px', height: 'auto', opacity: 0.8, transform: 'translateX(-10px)' }} />
+                  </div>
                 </div>
-              </div>
+             </div>
+          ) : activeTab === 'game' ? (
+            <>
+              {!isGameUnlocked ? (
+                <div style={{ width: '100%', maxWidth: '380px', backgroundColor: '#fff', borderRadius: '16px', padding: '30px 20px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
+                  <h2 style={{ color: '#d81b60', marginTop: 0 }}>🔒 封閉測試中</h2>
+                  <input type="password" placeholder="請輸入邀請碼" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ce93d8', marginBottom: '15px', textAlign: 'center', fontSize: '18px', letterSpacing: '3px' }} />
+                  <button onClick={() => { if (inviteCode === '095') { setIsGameUnlocked(true); localStorage.setItem('bxc_game_unlocked', 'true'); } else { alert('❌ 邀請碼錯誤！'); setInviteCode(''); } }} style={{ width: '100%', padding: '14px', background: '#d81b60', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>確認解鎖</button>
+                </div>
+              ) : !activeGameRoom ? (
+                <GameLobbyManager 
+                  user={user} 
+                  savedRecords={savedRecords}
+                  buildPlayerContext={buildPlayerContext}
+                  onEnterGame={(roomData) => setActiveGameRoom(roomData)} 
+                />
+              ) : (
+                <div style={{ width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <BoardGameRecord 
+                     user={user} 
+                     activeGameRoom={activeGameRoom}
+                     onBack={() => setActiveGameRoom(null)} 
+                  />
+                </div>
+              )}
             </>
           ) : (
             <div style={{ width: '100%', maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '15px' }}>

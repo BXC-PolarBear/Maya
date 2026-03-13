@@ -8,6 +8,7 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
   const [roomName, setRoomName] = useState('');
   const [isHostPlaying, setIsHostPlaying] = useState(true);
   const [joinCode, setJoinCode] = useState('');
+
   const [currentRoom, setCurrentRoom] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -57,7 +58,11 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
       }
 
       await setDoc(doc(db, 'game_rooms', code), newRoom);
-      setCurrentRoom(newRoom); setView('waiting'); setErrorMsg('');
+
+      // 設定完先改房間 ID，再切換 view，讓 useEffect 精準抓到
+      setCurrentRoom(newRoom); 
+      setView('waiting'); 
+      setErrorMsg('');
     } catch (error) { setErrorMsg('開桌失敗，請確認網路連線。'); }
   };
 
@@ -75,49 +80,58 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
       if (roomData.status === 'playing') return setErrorMsg('遊戲已經開始，無法加入！');
       if (roomData.players.length >= 5) return setErrorMsg('這桌已經客滿囉 (上限 5 人)！');
 
-      if (roomData.players.some(p => p.uid === user.uid)) {
-        setCurrentRoom(roomData); setView('waiting'); return;
+      // 如果已經在裡面，不用重複加
+      if (!roomData.players.some(p => p.uid === user.uid)) {
+        const playerContext = buildPlayerContext(selectedRecordId);
+        const playerInfo = { uid: user.uid, isHost: false, ...playerContext };
+
+        await updateDoc(roomRef, {
+          players: arrayUnion(playerInfo), 
+          playerIds: arrayUnion(user.uid), 
+          lastActivityAt: Date.now()
+        });
       }
 
-      const playerContext = buildPlayerContext(selectedRecordId);
-      const playerInfo = { uid: user.uid, isHost: false, ...playerContext };
-
-      await updateDoc(roomRef, {
-        players: arrayUnion(playerInfo), playerIds: arrayUnion(user.uid), lastActivityAt: Date.now()
-      });
-
-      setCurrentRoom({ ...roomData, players: [...roomData.players, playerInfo] });
-      setView('waiting'); setErrorMsg('');
+      // 切換進等待室，剩下的交給下方的 onSnapshot 處理
+      setCurrentRoom(roomData); // 先給舊資料也沒關係，onSnapshot 會瞬間覆蓋
+      setView('waiting'); 
+      setErrorMsg('');
     } catch (error) { setErrorMsg('加入失敗，請檢查網路連線。'); }
   };
 
-  // 🌟 修正點：獨立取出房間 ID，避免監聽器無限重置
-  const currentRoomId = currentRoom?.id;
+  // 🌟 鐵壁防禦級：獨立出房間 ID，確保 onSnapshot 絕對綁定在正確的通道上
+  const currentRoomId = currentRoom ? currentRoom.id : null;
 
   useEffect(() => {
     if (view === 'waiting' && currentRoomId) {
+      console.log(`[大廳連線] 正在監聽房間: ${currentRoomId}`); // 可以在開發者工具確認有沒有啟動
+
       const roomRef = doc(db, 'game_rooms', currentRoomId);
 
-      // 建立穩定的即時監聽線路
       const unsubscribe = onSnapshot(roomRef, (docSnap) => {
         if (docSnap.exists()) {
           const updatedRoom = docSnap.data();
-          setCurrentRoom(updatedRoom);
+          // 確保每次收到的都是全新物件，強制 React 重新渲染
+          setCurrentRoom(prev => ({ ...updatedRoom })); 
 
-          // 若桌長按了開始，觸發所有人進入遊戲
           if (updatedRoom.status === 'playing' || updatedRoom.status === 'ended') {
              onEnterGame(updatedRoom);
           }
         }
+      }, (error) => {
+        console.error("監聽房間狀態失敗:", error);
       });
-      return () => unsubscribe();
+
+      return () => {
+        console.log(`[大廳連線] 關閉監聽房間: ${currentRoomId}`);
+        unsubscribe();
+      };
     }
-  }, [view, currentRoomId]); // 🚨 依賴陣列只放這兩個，絕不動搖
+  }, [view, currentRoomId]); // 依賴項只看 view 和 ID
 
   const handleStartGame = async () => {
     if (!currentRoom) return;
     try {
-      // 點擊開始時，更新資料庫狀態，此舉會瞬間觸發所有人的 onSnapshot
       await updateDoc(doc(db, 'game_rooms', currentRoom.id), { status: 'playing', lastActivityAt: Date.now() });
     } catch (error) { setErrorMsg('啟動遊戲失敗。'); }
   };

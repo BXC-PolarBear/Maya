@@ -11,7 +11,6 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
   const [currentRoom, setCurrentRoom] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // 🌟 選擇要遊玩的角色紀錄
   const [selectedRecordId, setSelectedRecordId] = useState('current');
   const [myRooms, setMyRooms] = useState([]);
 
@@ -92,13 +91,20 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
     } catch (error) { setErrorMsg('加入失敗，請檢查網路連線。'); }
   };
 
+  // 🌟 修正點：獨立取出房間 ID，避免監聽器無限重置
+  const currentRoomId = currentRoom?.id;
+
   useEffect(() => {
-    if (view === 'waiting' && currentRoom) {
-      const roomRef = doc(db, 'game_rooms', currentRoom.id);
+    if (view === 'waiting' && currentRoomId) {
+      const roomRef = doc(db, 'game_rooms', currentRoomId);
+
+      // 建立穩定的即時監聽線路
       const unsubscribe = onSnapshot(roomRef, (docSnap) => {
         if (docSnap.exists()) {
           const updatedRoom = docSnap.data();
           setCurrentRoom(updatedRoom);
+
+          // 若桌長按了開始，觸發所有人進入遊戲
           if (updatedRoom.status === 'playing' || updatedRoom.status === 'ended') {
              onEnterGame(updatedRoom);
           }
@@ -106,16 +112,16 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
       });
       return () => unsubscribe();
     }
-  }, [view, currentRoom, onEnterGame]);
+  }, [view, currentRoomId]); // 🚨 依賴陣列只放這兩個，絕不動搖
 
   const handleStartGame = async () => {
     if (!currentRoom) return;
     try {
+      // 點擊開始時，更新資料庫狀態，此舉會瞬間觸發所有人的 onSnapshot
       await updateDoc(doc(db, 'game_rooms', currentRoom.id), { status: 'playing', lastActivityAt: Date.now() });
     } catch (error) { setErrorMsg('啟動遊戲失敗。'); }
   };
 
-  // --- UI 元件 ---
   const CharacterSelect = () => (
     <div style={{ marginBottom: '15px' }}>
       <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555' }}>選擇參與遊戲的雲端紀錄：</label>

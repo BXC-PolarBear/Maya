@@ -3,17 +3,25 @@ import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
 import { collection, doc, setDoc, getDoc, updateDoc, onSnapshot, arrayUnion, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 
+// 🌟 引入 LINE LIFF 與 QR Code 相關套件
+import liff from '@line/liff';
+import QRCode from 'react-qr-code';
+import { Scanner } from '@yudiel/react-qr-scanner';
+
 export default function GameLobbyManager({ user, savedRecords, buildPlayerContext, onEnterGame }) {
   const [view, setView] = useState('home'); 
   const [roomName, setRoomName] = useState('');
   const [isHostPlaying, setIsHostPlaying] = useState(true);
   const [joinCode, setJoinCode] = useState('');
-
+  
   const [currentRoom, setCurrentRoom] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
-
+  
   const [selectedRecordId, setSelectedRecordId] = useState('current');
   const [myRooms, setMyRooms] = useState([]);
+
+  // 🌟 掃描器狀態
+  const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
     if (view === 'home' && user) {
@@ -58,8 +66,6 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
       }
 
       await setDoc(doc(db, 'game_rooms', code), newRoom);
-
-      // 設定完先改房間 ID，再切換 view，讓 useEffect 精準抓到
       setCurrentRoom(newRoom); 
       setView('waiting'); 
       setErrorMsg('');
@@ -74,66 +80,69 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
       const roomRef = doc(db, 'game_rooms', joinCode);
       const roomSnap = await getDoc(roomRef);
       if (!roomSnap.exists()) return setErrorMsg('找不到此桌次代碼！');
-
+      
       const roomData = roomSnap.data();
       if (roomData.status === 'ended') return setErrorMsg('這場遊戲已經結束囉！');
       if (roomData.status === 'playing') return setErrorMsg('遊戲已經開始，無法加入！');
       if (roomData.players.length >= 5) return setErrorMsg('這桌已經客滿囉 (上限 5 人)！');
 
-      // 如果已經在裡面，不用重複加
       if (!roomData.players.some(p => p.uid === user.uid)) {
         const playerContext = buildPlayerContext(selectedRecordId);
         const playerInfo = { uid: user.uid, isHost: false, ...playerContext };
-
         await updateDoc(roomRef, {
           players: arrayUnion(playerInfo), 
           playerIds: arrayUnion(user.uid), 
           lastActivityAt: Date.now()
         });
       }
-
-      // 切換進等待室，剩下的交給下方的 onSnapshot 處理
-      setCurrentRoom(roomData); // 先給舊資料也沒關係，onSnapshot 會瞬間覆蓋
+      setCurrentRoom(roomData);
       setView('waiting'); 
       setErrorMsg('');
     } catch (error) { setErrorMsg('加入失敗，請檢查網路連線。'); }
   };
 
-  // 🌟 鐵壁防禦級：獨立出房間 ID，確保 onSnapshot 絕對綁定在正確的通道上
   const currentRoomId = currentRoom ? currentRoom.id : null;
 
   useEffect(() => {
     if (view === 'waiting' && currentRoomId) {
-      console.log(`[大廳連線] 正在監聽房間: ${currentRoomId}`); // 可以在開發者工具確認有沒有啟動
-
       const roomRef = doc(db, 'game_rooms', currentRoomId);
-
       const unsubscribe = onSnapshot(roomRef, (docSnap) => {
         if (docSnap.exists()) {
           const updatedRoom = docSnap.data();
-          // 確保每次收到的都是全新物件，強制 React 重新渲染
           setCurrentRoom(prev => ({ ...updatedRoom })); 
-
           if (updatedRoom.status === 'playing' || updatedRoom.status === 'ended') {
              onEnterGame(updatedRoom);
           }
         }
-      }, (error) => {
-        console.error("監聽房間狀態失敗:", error);
       });
-
-      return () => {
-        console.log(`[大廳連線] 關閉監聽房間: ${currentRoomId}`);
-        unsubscribe();
-      };
+      return () => unsubscribe();
     }
-  }, [view, currentRoomId]); // 依賴項只看 view 和 ID
+  }, [view, currentRoomId, onEnterGame]); 
 
   const handleStartGame = async () => {
     if (!currentRoom) return;
-    try {
-      await updateDoc(doc(db, 'game_rooms', currentRoom.id), { status: 'playing', lastActivityAt: Date.now() });
-    } catch (error) { setErrorMsg('啟動遊戲失敗。'); }
+    try { await updateDoc(doc(db, 'game_rooms', currentRoom.id), { status: 'playing', lastActivityAt: Date.now() }); } 
+    catch (error) { setErrorMsg('啟動遊戲失敗。'); }
+  };
+
+  // 🌟 啟動 QR 掃描器
+  const handleStartScan = async () => {
+    setErrorMsg('');
+    // 如果在 LINE 裡面，優先使用 LINE 的內建掃描器，速度最快最穩！
+    if (liff.isInClient() && liff.scanCodeV2) {
+      try {
+        const result = await liff.scanCodeV2();
+        if (result && result.value) {
+          setJoinCode(result.value);
+        }
+      } catch (err) {
+        // 如果使用者拒絕或失敗，退回網頁版掃描器
+        setIsScanning(true);
+      }
+    } else {
+      // 網頁版直接啟動相機掃描
+      setIsScanning(true);
+    }
   };
 
   const CharacterSelect = () => (
@@ -141,16 +150,14 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
       <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555' }}>選擇參與遊戲的雲端紀錄：</label>
       <select value={selectedRecordId} onChange={e => setSelectedRecordId(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', marginTop: '5px' }}>
         <option value="current">👤 目前首頁輸入的資料 ({buildPlayerContext('current').name})</option>
-        {savedRecords && savedRecords.map(r => (
-          <option key={r.id} value={r.id}>☁️ {r.name} (KIN {r.kin})</option>
-        ))}
+        {savedRecords && savedRecords.map(r => ( <option key={r.id} value={r.id}>☁️ {r.name} (KIN {r.kin})</option> ))}
       </select>
     </div>
   );
 
   const containerStyle = { width: '100%', maxWidth: '380px', background: '#fff', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', boxSizing: 'border-box' };
-  const inputStyle = { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ccc', marginBottom: '15px', boxSizing: 'border-box', fontSize: '16px' };
-  const btnStyle = { width: '100%', padding: '14px', borderRadius: '12px', border: 'none', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', marginBottom: '10px' };
+  const inputStyle = { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ccc', boxSizing: 'border-box', fontSize: '16px' };
+  const btnStyle = { width: '100%', padding: '14px', borderRadius: '12px', border: 'none', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' };
 
   return (
     <div style={containerStyle}>
@@ -161,7 +168,7 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '10px' }}>
           <button onClick={() => setView('create')} style={{ ...btnStyle, background: '#3949ab', color: '#fff' }}>👑 我要開桌 (當桌長)</button>
           <button onClick={() => setView('join')} style={{ ...btnStyle, background: '#26a69a', color: '#fff' }}>🙋‍♂️ 我要加入 (當成員)</button>
-
+          
           <div style={{ marginTop: '20px', borderTop: '1px dashed #ccc', paddingTop: '15px' }}>
             <h3 style={{ fontSize: '15px', color: '#333', marginBottom: '10px' }}>📜 我的遊戲紀錄</h3>
             {myRooms.length === 0 ? <div style={{ fontSize: '13px', color: '#888', textAlign: 'center' }}>尚未參與任何遊戲</div> : (
@@ -181,7 +188,7 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
       {view === 'create' && (
         <div>
           <h3 style={{ fontSize: '16px', color: '#333' }}>開桌設定</h3>
-          <input type="text" placeholder="為這桌取個名字" value={roomName} onChange={(e) => setRoomName(e.target.value)} style={inputStyle} />
+          <input type="text" placeholder="為這桌取個名字" value={roomName} onChange={(e) => setRoomName(e.target.value)} style={{...inputStyle, marginBottom: '15px'}} />
           <CharacterSelect />
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', cursor: 'pointer', fontSize: '14px', color: '#555' }}>
             <input type="checkbox" checked={isHostPlaying} onChange={(e) => setIsHostPlaying(e.target.checked)} style={{ width: '18px', height: '18px', accentColor: '#3949ab' }} /> 桌長是否親自下場玩遊戲？
@@ -196,10 +203,35 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
       {view === 'join' && (
         <div>
           <h3 style={{ fontSize: '16px', color: '#333' }}>加入遊戲</h3>
-          <input type="text" placeholder="輸入 10 碼桌次代碼" value={joinCode} onChange={(e) => setJoinCode(e.target.value)} style={inputStyle} maxLength={10} />
+          <p style={{ fontSize: '13px', color: '#888', marginBottom: '15px' }}>請輸入代碼，或點擊掃描桌長的手機畫面</p>
+          
+          {/* 🌟 加入掃描區塊 */}
+          {isScanning ? (
+            <div style={{ marginBottom: '15px', borderRadius: '12px', overflow: 'hidden', border: '2px solid #26a69a' }}>
+              <Scanner 
+                onScan={(result) => {
+                  if (result && result.length > 0) {
+                    const code = result[0].rawValue;
+                    if (code) setJoinCode(code);
+                    setIsScanning(false);
+                  }
+                }}
+                onError={(err) => console.log(err)}
+              />
+              <button onClick={() => setIsScanning(false)} style={{ width: '100%', padding: '10px', background: '#f1f5f9', border: 'none', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer' }}>取消相機</button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+              <input type="text" placeholder="輸入10碼數字" value={joinCode} onChange={(e) => setJoinCode(e.target.value)} style={{...inputStyle, flex: 1, letterSpacing: '1px'}} maxLength={10} />
+              <button onClick={handleStartScan} style={{ padding: '0 15px', background: '#e0f2fe', color: '#0284c7', border: '1px solid #0284c7', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                📷
+              </button>
+            </div>
+          )}
+
           <CharacterSelect />
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button onClick={() => setView('home')} style={{ ...btnStyle, background: '#f1f5f9', color: '#64748b', flex: 1 }}>返回</button>
+            <button onClick={() => { setView('home'); setIsScanning(false); }} style={{ ...btnStyle, background: '#f1f5f9', color: '#64748b', flex: 1 }}>返回</button>
             <button onClick={handleJoinRoom} style={{ ...btnStyle, background: '#26a69a', color: '#fff', flex: 2 }}>確認加入</button>
           </div>
         </div>
@@ -208,10 +240,17 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
       {view === 'waiting' && currentRoom && (
         <div style={{ textAlign: 'center' }}>
           <h3 style={{ fontSize: '18px', color: '#333', margin: '0 0 10px 0' }}>{currentRoom.name}</h3>
-          <div style={{ background: '#f3e5f5', padding: '15px', borderRadius: '12px', border: '1px dashed #ce93d8', marginBottom: '20px' }}>
-            <p style={{ fontSize: '12px', color: '#8e24aa', margin: '0 0 5px 0' }}>桌次代碼</p>
-            <h2 style={{ margin: 0, fontSize: '28px', color: '#4a148c', letterSpacing: '2px' }}>{currentRoom.id}</h2>
+          
+          {/* 🌟 讓桌次代碼下方長出專屬 QR Code */}
+          <div style={{ background: '#f3e5f5', padding: '20px', borderRadius: '16px', border: '1px dashed #ce93d8', marginBottom: '20px' }}>
+            <p style={{ fontSize: '12px', color: '#8e24aa', margin: '0 0 5px 0', fontWeight: 'bold' }}>請成員掃描此 QR Code 加入</p>
+            <div style={{ display: 'inline-block', background: '#fff', padding: '10px', borderRadius: '12px', marginBottom: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+               <QRCode value={currentRoom.id} size={160} fgColor="#4a148c" />
+            </div>
+            <p style={{ fontSize: '12px', color: '#888', margin: '0 0 5px 0' }}>或手動輸入代碼</p>
+            <h2 style={{ margin: 0, fontSize: '32px', color: '#4a148c', letterSpacing: '4px' }}>{currentRoom.id}</h2>
           </div>
+
           <div style={{ background: '#fafafa', padding: '15px', borderRadius: '12px', marginBottom: '20px', textAlign: 'left' }}>
             <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#555' }}>👥 等待中的玩家</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

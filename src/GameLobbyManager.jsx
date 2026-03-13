@@ -13,10 +13,10 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
   const [roomName, setRoomName] = useState('');
   const [isHostPlaying, setIsHostPlaying] = useState(true);
   const [joinCode, setJoinCode] = useState('');
-  
+
   const [currentRoom, setCurrentRoom] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
-  
+
   const [selectedRecordId, setSelectedRecordId] = useState('current');
   const [myRooms, setMyRooms] = useState([]);
 
@@ -80,7 +80,7 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
       const roomRef = doc(db, 'game_rooms', joinCode);
       const roomSnap = await getDoc(roomRef);
       if (!roomSnap.exists()) return setErrorMsg('找不到此桌次代碼！');
-      
+
       const roomData = roomSnap.data();
       if (roomData.status === 'ended') return setErrorMsg('這場遊戲已經結束囉！');
       if (roomData.status === 'playing') return setErrorMsg('遊戲已經開始，無法加入！');
@@ -168,7 +168,7 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '10px' }}>
           <button onClick={() => setView('create')} style={{ ...btnStyle, background: '#3949ab', color: '#fff' }}>👑 我要開桌 (當桌長)</button>
           <button onClick={() => setView('join')} style={{ ...btnStyle, background: '#26a69a', color: '#fff' }}>🙋‍♂️ 我要加入 (當成員)</button>
-          
+
           <div style={{ marginTop: '20px', borderTop: '1px dashed #ccc', paddingTop: '15px' }}>
             <h3 style={{ fontSize: '15px', color: '#333', marginBottom: '10px' }}>📜 我的遊戲紀錄</h3>
             {myRooms.length === 0 ? <div style={{ fontSize: '13px', color: '#888', textAlign: 'center' }}>尚未參與任何遊戲</div> : (
@@ -204,7 +204,7 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
         <div>
           <h3 style={{ fontSize: '16px', color: '#333' }}>加入遊戲</h3>
           <p style={{ fontSize: '13px', color: '#888', marginBottom: '15px' }}>請輸入代碼，或點擊掃描桌長的手機畫面</p>
-          
+
           {/* 🌟 加入掃描區塊 */}
           {isScanning ? (
             <div style={{ marginBottom: '15px', borderRadius: '12px', overflow: 'hidden', border: '2px solid #26a69a' }}>
@@ -240,7 +240,7 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
       {view === 'waiting' && currentRoom && (
         <div style={{ textAlign: 'center' }}>
           <h3 style={{ fontSize: '18px', color: '#333', margin: '0 0 10px 0' }}>{currentRoom.name}</h3>
-          
+
           {/* 🌟 讓桌次代碼下方長出專屬 QR Code */}
           <div style={{ background: '#f3e5f5', padding: '20px', borderRadius: '16px', border: '1px dashed #ce93d8', marginBottom: '20px' }}>
             <p style={{ fontSize: '12px', color: '#8e24aa', margin: '0 0 5px 0', fontWeight: 'bold' }}>請成員掃描此 QR Code 加入</p>

@@ -8,6 +8,75 @@ import liff from '@line/liff';
 import QRCode from 'react-qr-code';
 import { Scanner } from '@yudiel/react-qr-scanner';
 
+// 🌟 引入牌卡資料與圖騰引擎
+import { seals } from './mayaEngine';
+import { cardsData } from './cardsData';
+
+// 🌟 牌卡圖示與顏色引擎
+const getCardIcon = (imgStr) => {
+  if (!imgStr) return '';
+  if (imgStr.startsWith('T')) {
+    const toneNum = parseInt(imgStr.substring(1), 10);
+    return `/tone_${toneNum}.png`;
+  } else {
+    const sealNum = parseInt(imgStr, 10);
+    if (sealNum >= 1 && sealNum <= 20) {
+      const paddedNum = sealNum.toString().padStart(2, '0');
+      return `/${paddedNum}.png`;
+    }
+  }
+  return '';
+};
+
+const colorStyles = {
+  '紅': '#ef4444',
+  '白': '#94a3b8', 
+  '藍': '#3b82f6',
+  '黃': '#eab308',
+  '綠': '#22c55e'
+};
+
+// 🌟 獨立的實體虛擬牌卡元件 (讓畫面更乾淨)
+const CardDisplay = ({ card }) => {
+  if (!card) return null;
+  const [cId, cText, cImg, cColorStr, cType] = card;
+  const borderHex = colorStyles[cColorStr] || '#cbd5e1';
+
+  return (
+    <div style={{
+      width: '180px', height: '260px',
+      backgroundColor: '#fff', border: `6px solid ${borderHex}`,
+      borderRadius: '16px', position: 'relative',
+      boxShadow: '0 6px 12px rgba(0,0,0,0.08)', padding: '16px',
+      boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
+      backgroundImage: 'linear-gradient(to bottom right, rgba(255,255,255,1), rgba(245,245,245,0.6))',
+      margin: '0 auto'
+    }}>
+      {/* 左上角：編號 */}
+      <div style={{ position: 'absolute', top: '10px', left: '12px', fontSize: '18px', fontWeight: '900', color: borderHex, fontFamily: 'monospace', textShadow: '1px 1px 0px rgba(255,255,255,0.8)' }}>
+        #{cId}
+      </div>
+
+      {/* 正中間：文字 */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '24px', marginBottom: '28px', overflowY: 'auto' }}>
+        <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#334155', textAlign: 'center', lineHeight: '1.6', letterSpacing: '0.5px' }}>
+          {cText}
+        </div>
+      </div>
+
+      {/* 左下角：類型 */}
+      <div style={{ position: 'absolute', bottom: '12px', left: '12px', backgroundColor: borderHex, color: '#fff', fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '6px', letterSpacing: '1px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        {cType}
+      </div>
+
+      {/* 右下角：圖示 */}
+      <div style={{ position: 'absolute', bottom: '10px', right: '10px', width: '34px', height: '34px', backgroundColor: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${borderHex}`, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
+        {getCardIcon(cImg) && <img src={getCardIcon(cImg)} alt="icon" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />}
+      </div>
+    </div>
+  );
+};
+
 export default function GameLobbyManager({ user, savedRecords, buildPlayerContext, onEnterGame }) {
   const [view, setView] = useState('home'); 
   const [roomName, setRoomName] = useState('');
@@ -19,9 +88,25 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
 
   const [selectedRecordId, setSelectedRecordId] = useState('current');
   const [myRooms, setMyRooms] = useState([]);
-
-  // 🌟 掃描器狀態
   const [isScanning, setIsScanning] = useState(false);
+
+  // 🌟 圖鑑與抽卡專屬狀態
+  const [dictMode, setDictMode] = useState('search'); // 'search' 或 'random'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [randomCard, setRandomCard] = useState(null);
+
+  const displayedCards = searchQuery.trim() 
+    ? cardsData.filter(c => c[0].toLowerCase().includes(searchQuery.toLowerCase()) || c[1].toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 10)
+    : [];
+
+  const handleDrawCard = () => {
+    // 每次點擊先清空卡片製造閃爍動畫效果，然後延遲 50ms 抽卡
+    setRandomCard(null);
+    setTimeout(() => {
+      const randomIndex = Math.floor(Math.random() * cardsData.length);
+      setRandomCard(cardsData[randomIndex]);
+    }, 50);
+  };
 
   useEffect(() => {
     if (view === 'home' && user) {
@@ -125,22 +210,14 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
     catch (error) { setErrorMsg('啟動遊戲失敗。'); }
   };
 
-  // 🌟 啟動 QR 掃描器
   const handleStartScan = async () => {
     setErrorMsg('');
-    // 如果在 LINE 裡面，優先使用 LINE 的內建掃描器，速度最快最穩！
     if (liff.isInClient() && liff.scanCodeV2) {
       try {
         const result = await liff.scanCodeV2();
-        if (result && result.value) {
-          setJoinCode(result.value);
-        }
-      } catch (err) {
-        // 如果使用者拒絕或失敗，退回網頁版掃描器
-        setIsScanning(true);
-      }
+        if (result && result.value) setJoinCode(result.value);
+      } catch (err) { setIsScanning(true); }
     } else {
-      // 網頁版直接啟動相機掃描
       setIsScanning(true);
     }
   };
@@ -169,6 +246,11 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
           <button onClick={() => setView('create')} style={{ ...btnStyle, background: '#3949ab', color: '#fff' }}>👑 我要開桌 (當桌長)</button>
           <button onClick={() => setView('join')} style={{ ...btnStyle, background: '#26a69a', color: '#fff' }}>🙋‍♂️ 我要加入 (當成員)</button>
 
+          {/* 🌟 獨立抽卡圖鑑入口 */}
+          <button onClick={() => { setView('dictionary'); setDictMode('search'); }} style={{ ...btnStyle, background: '#8b5cf6', color: '#fff', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+            <span>🔍</span> 牌卡圖鑑 & 隨機抽卡 <span>🎲</span>
+          </button>
+
           <div style={{ marginTop: '20px', borderTop: '1px dashed #ccc', paddingTop: '15px' }}>
             <h3 style={{ fontSize: '15px', color: '#333', marginBottom: '10px' }}>📜 我的遊戲紀錄</h3>
             {myRooms.length === 0 ? <div style={{ fontSize: '13px', color: '#888', textAlign: 'center' }}>尚未參與任何遊戲</div> : (
@@ -185,6 +267,78 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
         </div>
       )}
 
+      {/* ========================================= */}
+      {/* 🌟 全新獨立專區：牌卡圖鑑 & 隨機抽卡 */}
+      {/* ========================================= */}
+      {view === 'dictionary' && (
+        <div style={{ animation: 'fadeIn 0.3s' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h3 style={{ margin: 0, color: '#333', fontSize: '16px' }}>📖 牌卡圖鑑與抽卡</h3>
+            <button onClick={() => setView('home')} style={{ background: '#f1f5f9', border: 'none', padding: '6px 12px', borderRadius: '8px', fontWeight: 'bold', color: '#64748b', cursor: 'pointer' }}>返回</button>
+          </div>
+
+          <div style={{ display: 'flex', width: '100%', marginBottom: '15px', backgroundColor: '#f8fafc', borderRadius: '12px', padding: '4px', border: '1px solid #e2e8f0' }}>
+            <button onClick={() => setDictMode('search')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: dictMode === 'search' ? '#e0e7ff' : 'transparent', color: dictMode === 'search' ? '#4f46e5' : '#888', fontWeight: 'bold', cursor: 'pointer' }}>
+              🔍 關鍵字搜尋
+            </button>
+            <button onClick={() => setDictMode('random')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: dictMode === 'random' ? '#fce4ec' : 'transparent', color: dictMode === 'random' ? '#d81b60' : '#888', fontWeight: 'bold', cursor: 'pointer' }}>
+              🎲 隨機抽卡
+            </button>
+          </div>
+
+          {dictMode === 'search' && (
+            <div style={{ background: '#fff', borderRadius: '12px', padding: '15px', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+              <div style={{ position: 'relative', marginBottom: '15px' }}>
+                <input 
+                  type="text" 
+                  placeholder="輸入卡牌編號或關鍵字..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ width: '100%', padding: '10px 35px 10px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '14px', outline: 'none' }}
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} style={{ position: 'absolute', right: '10px', top: '10px', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>✖</button>
+                )}
+              </div>
+
+              {searchQuery.trim() !== '' && (
+                <div>
+                  {displayedCards.length > 0 ? (
+                    <div style={{ display: 'flex', gap: '15px', overflowX: 'auto', paddingBottom: '15px', scrollSnapType: 'x mandatory' }}>
+                      {displayedCards.map(card => (
+                        <div key={card[0]} style={{ flex: '0 0 180px', scrollSnapAlign: 'start' }}>
+                          <CardDisplay card={card} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '13px', color: '#888', textAlign: 'center', padding: '20px 0' }}>找不到符合的牌卡 🙈</div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {dictMode === 'random' && (
+            <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+              <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px', lineHeight: '1.5' }}>
+                閉上眼睛，在心中默念您的問題或目前的困境，然後按下按鈕，抽出宇宙給您的指引。
+              </p>
+              <button onClick={handleDrawCard} style={{ background: 'linear-gradient(135deg, #d81b60 0%, #8e24aa 100%)', color: '#fff', border: 'none', padding: '14px 24px', borderRadius: '30px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(216, 27, 96, 0.4)', marginBottom: '25px' }}>
+                ✨ 抽出宇宙的指引
+              </button>
+
+              {randomCard && (
+                <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.39, 0.575, 0.565, 1)', display: 'flex', justifyContent: 'center' }}>
+                  <CardDisplay card={randomCard} />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 原本的開桌與加入邏輯保留... */}
       {view === 'create' && (
         <div>
           <h3 style={{ fontSize: '16px', color: '#333' }}>開桌設定</h3>
@@ -205,7 +359,6 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
           <h3 style={{ fontSize: '16px', color: '#333' }}>加入遊戲</h3>
           <p style={{ fontSize: '13px', color: '#888', marginBottom: '15px' }}>請輸入代碼，或點擊掃描桌長的手機畫面</p>
 
-          {/* 🌟 加入掃描區塊 */}
           {isScanning ? (
             <div style={{ marginBottom: '15px', borderRadius: '12px', overflow: 'hidden', border: '2px solid #26a69a' }}>
               <Scanner 
@@ -241,7 +394,6 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
         <div style={{ textAlign: 'center' }}>
           <h3 style={{ fontSize: '18px', color: '#333', margin: '0 0 10px 0' }}>{currentRoom.name}</h3>
 
-          {/* 🌟 讓桌次代碼下方長出專屬 QR Code */}
           <div style={{ background: '#f3e5f5', padding: '20px', borderRadius: '16px', border: '1px dashed #ce93d8', marginBottom: '20px' }}>
             <p style={{ fontSize: '12px', color: '#8e24aa', margin: '0 0 5px 0', fontWeight: 'bold' }}>請成員掃描此 QR Code 加入</p>
             <div style={{ display: 'inline-block', background: '#fff', padding: '10px', borderRadius: '12px', marginBottom: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>

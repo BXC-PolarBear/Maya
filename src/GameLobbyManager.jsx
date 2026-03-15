@@ -9,7 +9,7 @@ import QRCode from 'react-qr-code';
 import { Scanner } from '@yudiel/react-qr-scanner';
 
 // 🌟 引入牌卡資料與圖騰引擎
-import { seals } from './mayaEngine';
+import { seals, earthFamilies } from './mayaEngine';
 import { cardsData } from './cardsData';
 
 const getCardIcon = (imgStr) => {
@@ -51,24 +51,17 @@ const CardDisplay = ({ card }) => {
       backgroundImage: 'linear-gradient(to bottom right, rgba(255,255,255,1), rgba(245,245,245,0.6))',
       margin: '0 auto'
     }}>
-      {/* 左上角：編號 */}
       <div style={{ position: 'absolute', top: '10px', left: '12px', fontSize: '18px', fontWeight: '900', color: borderHex, fontFamily: 'monospace', textShadow: '1px 1px 0px rgba(255,255,255,0.8)' }}>
         #{cId}
       </div>
-
-      {/* 正中間：文字 */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '24px', marginBottom: '28px', overflowY: 'auto' }}>
         <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#334155', textAlign: 'center', lineHeight: '1.6', letterSpacing: '0.5px' }}>
           {cText}
         </div>
       </div>
-
-      {/* 左下角：類型 */}
       <div style={{ position: 'absolute', bottom: '12px', left: '12px', backgroundColor: borderHex, color: '#fff', fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '6px', letterSpacing: '1px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
         {cType}
       </div>
-
-      {/* 右下角：圖示 */}
       <div style={{ position: 'absolute', bottom: '10px', right: '10px', width: '34px', height: '34px', backgroundColor: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${borderHex}`, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
         {getCardIcon(cImg) && <img src={getCardIcon(cImg)} alt="icon" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />}
       </div>
@@ -76,7 +69,7 @@ const CardDisplay = ({ card }) => {
   );
 };
 
-export default function GameLobbyManager({ user, savedRecords, buildPlayerContext, onEnterGame }) {
+export default function GameLobbyManager({ user, myProfile, savedRecords, buildPlayerContext, onEnterGame }) {
   const [view, setView] = useState('home'); 
   const [roomName, setRoomName] = useState('');
   const [isHostPlaying, setIsHostPlaying] = useState(true);
@@ -85,7 +78,14 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
   const [currentRoom, setCurrentRoom] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const [selectedRecordId, setSelectedRecordId] = useState('current');
+  // 🌟 角色選擇預設值：直接設為 'my' (我的主印記)
+  const [selectedRecordId, setSelectedRecordId] = useState('my');
+
+  // 🌟 當載入到我的主印記時，強制把預設選項設為「我的主印記」
+  useEffect(() => {
+    if (myProfile) setSelectedRecordId('my');
+  }, [myProfile]);
+
   const [myRooms, setMyRooms] = useState([]);
   const [isScanning, setIsScanning] = useState(false);
 
@@ -130,6 +130,26 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
     return { code: `${datePrefix}${randomSeq}`, datePrefix };
   };
 
+  // 🌟 自動根據選擇建構玩家資訊
+  const getPlayerInfo = () => {
+    if (selectedRecordId === 'my' && myProfile) {
+      const k = parseInt(myProfile.kin) || 1;
+      const mIdx = k % 20;
+      const tNum = ((k - 1) % 13) + 1;
+      const wsIdx = (mIdx - (tNum - 1) + 260) % 20;
+      const efIdx = mIdx % 5 || 0;
+      return {
+        name: myProfile.name,
+        date: myProfile.date,
+        kin: k,
+        wavespell: seals[wsIdx] ? seals[wsIdx].name : '未知',
+        earthFamily: earthFamilies[efIdx] || '未知'
+      };
+    }
+    // 如果不是我的主印記，就是親友資料庫的 ID
+    return buildPlayerContext(selectedRecordId);
+  };
+
   const handleCreateRoom = async () => {
     if (!roomName.trim()) return setErrorMsg('請輸入桌名！');
     if (!user) return setErrorMsg('請先登入！');
@@ -137,14 +157,14 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
     try {
       const { code, datePrefix } = generateRoomCode();
       const newRoom = {
-        id: code, name: roomName, hostId: user.uid, hostName: buildPlayerContext('current').name,
+        id: code, name: roomName, hostId: user.uid, hostName: getPlayerInfo().name,
         isHostPlaying, status: 'waiting', players: [], playerIds: [user.uid],
         datePrefix, createdAt: serverTimestamp(), lastActivityAt: Date.now()
       };
 
       if (isHostPlaying) {
-        const playerContext = buildPlayerContext(selectedRecordId);
-        newRoom.players.push({ uid: user.uid, isHost: true, ...playerContext });
+        const playerInfo = { uid: user.uid, isHost: true, ...getPlayerInfo() };
+        newRoom.players.push(playerInfo);
       }
 
       await setDoc(doc(db, 'game_rooms', code), newRoom);
@@ -169,8 +189,7 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
       if (roomData.players.length >= 5) return setErrorMsg('這桌已經客滿囉 (上限 5 人)！');
 
       if (!roomData.players.some(p => p.uid === user.uid)) {
-        const playerContext = buildPlayerContext(selectedRecordId);
-        const playerInfo = { uid: user.uid, isHost: false, ...playerContext };
+        const playerInfo = { uid: user.uid, isHost: false, ...getPlayerInfo() };
         await updateDoc(roomRef, {
           players: arrayUnion(playerInfo), 
           playerIds: arrayUnion(user.uid), 
@@ -191,6 +210,15 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
       const unsubscribe = onSnapshot(roomRef, (docSnap) => {
         if (docSnap.exists()) {
           const updatedRoom = docSnap.data();
+
+          // 🌟 安全機制：檢查自己是否被剔除或已主動退出
+          if (!updatedRoom.playerIds.includes(user.uid)) {
+             alert("您已離開此桌或被桌長移除。");
+             setCurrentRoom(null);
+             setView('home');
+             return;
+          }
+
           setCurrentRoom(prev => ({ ...updatedRoom })); 
           if (updatedRoom.status === 'playing' || updatedRoom.status === 'ended') {
              onEnterGame(updatedRoom);
@@ -199,7 +227,7 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
       });
       return () => unsubscribe();
     }
-  }, [view, currentRoomId, onEnterGame]); 
+  }, [view, currentRoomId, onEnterGame, user.uid]); 
 
   const handleStartGame = async () => {
     if (!currentRoom) return;
@@ -219,12 +247,45 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
     }
   };
 
+  // 🌟 桌長移除玩家功能
+  const handleKickPlayer = async (targetUid, targetName) => {
+    if (!window.confirm(`確定要將 ${targetName} 移出遊戲桌嗎？`)) return;
+    if (!currentRoom) return;
+    try {
+      const newPlayers = currentRoom.players.filter(p => p.uid !== targetUid);
+      const newPlayerIds = currentRoom.playerIds.filter(id => id !== targetUid);
+      await updateDoc(doc(db, 'game_rooms', currentRoom.id), { players: newPlayers, playerIds: newPlayerIds });
+    } catch(e) { alert("移除失敗！"); }
+  };
+
+  // 🌟 成員主動退出功能
+  const handleLeaveRoom = async () => {
+    if (!window.confirm("確定要退出這個遊戲桌嗎？")) return;
+    if (!currentRoom) return;
+    try {
+      const newPlayers = currentRoom.players.filter(p => p.uid !== user.uid);
+      const newPlayerIds = currentRoom.playerIds.filter(id => id !== user.uid);
+      await updateDoc(doc(db, 'game_rooms', currentRoom.id), { players: newPlayers, playerIds: newPlayerIds });
+      setCurrentRoom(null);
+      setView('home');
+    } catch(e) { alert("退出失敗！"); }
+  };
+
+  // 🌟 全新設計的防呆選單 (拔除臨時自訂)
   const CharacterSelect = () => (
     <div style={{ marginBottom: '15px' }}>
-      <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555' }}>選擇參與遊戲的雲端紀錄：</label>
-      <select value={selectedRecordId} onChange={e => setSelectedRecordId(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', marginTop: '5px' }}>
-        <option value="current">👤 目前首頁輸入的資料 ({buildPlayerContext('current').name})</option>
-        {savedRecords && savedRecords.map(r => ( <option key={r.id} value={r.id}>☁️ {r.name} (KIN {r.kin})</option> ))}
+      <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555' }}>選擇參與遊戲的身份角色：</label>
+      <select value={selectedRecordId} onChange={e => setSelectedRecordId(e.target.value)} style={{ width: '100%', padding: '12px 10px', borderRadius: '8px', border: '1px solid #ccc', marginTop: '5px', fontSize: '14px', backgroundColor: '#fafafa', outline: 'none' }}>
+
+        {myProfile && (
+          <option value="my" style={{ fontWeight: 'bold' }}>👑 我的主印記 ({myProfile.name} - KIN {myProfile.kin})</option>
+        )}
+
+        {savedRecords && savedRecords.length > 0 && (
+          <optgroup label="👥 親友資料庫">
+            {savedRecords.map(r => ( <option key={r.id} value={r.id}>{r.name} (KIN {r.kin})</option> ))}
+          </optgroup>
+        )}
       </select>
     </div>
   );
@@ -396,20 +457,45 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
           </div>
 
           <div style={{ background: '#fafafa', padding: '15px', borderRadius: '12px', marginBottom: '20px', textAlign: 'left' }}>
-            <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#555' }}>👥 等待中的玩家</h4>
+            <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#555' }}>👥 等待中的玩家 ({currentRoom.players.length}/5)</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {currentRoom.players.map((p, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', background: '#fff', padding: '10px', borderRadius: '8px', border: '1px solid #eee' }}>
-                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>{p.name} {p.isHost && <span style={{ fontSize: '10px', background: '#ffc107', padding: '2px 6px', borderRadius: '10px', marginLeft: '5px' }}>桌長</span>}</span>
-                  <span style={{ fontSize: '12px', color: '#888' }}>KIN {p.kin}</span>
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '10px', borderRadius: '8px', border: '1px solid #eee' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
+                      {p.name} 
+                      {p.isHost && <span style={{ fontSize: '10px', background: '#ffc107', padding: '2px 6px', borderRadius: '10px', marginLeft: '6px' }}>桌長</span>}
+                      {p.uid === user?.uid && <span style={{ fontSize: '10px', background: '#e0f2fe', color: '#0284c7', padding: '2px 6px', borderRadius: '10px', marginLeft: '6px' }}>自己</span>}
+                    </span>
+                    <span style={{ fontSize: '12px', color: '#888' }}>KIN {p.kin}</span>
+                  </div>
+
+                  {/* 🌟 只有桌長可以看到踢人按鈕，且不能踢自己 */}
+                  {currentRoom.hostId === user?.uid && p.uid !== user?.uid && (
+                    <button 
+                      onClick={() => handleKickPlayer(p.uid, p.name)} 
+                      style={{ background: '#fee2e2', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '12px', padding: '6px 10px', borderRadius: '6px', fontWeight: 'bold' }}
+                    >
+                      移除
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
           </div>
-          {currentRoom.hostId === user?.uid ? (
-             <button onClick={handleStartGame} style={{ ...btnStyle, background: '#d81b60', color: '#fff' }}>🚀 確認人數，開始遊戲</button>
-          ) : ( <div style={{ padding: '15px', background: '#e0f2fe', color: '#0284c7', borderRadius: '12px', fontWeight: 'bold' }}>⏳ 等待桌長按下開始...</div> )}
-          <button onClick={() => setView('home')} style={{ marginTop: '15px', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontWeight: 'bold' }}>返回大廳首頁</button>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {currentRoom.hostId === user?.uid ? (
+               <button onClick={handleStartGame} style={{ ...btnStyle, background: '#d81b60', color: '#fff' }}>🚀 確認人數，開始遊戲</button>
+            ) : ( 
+              <>
+               <div style={{ padding: '15px', background: '#e0f2fe', color: '#0284c7', borderRadius: '12px', fontWeight: 'bold' }}>⏳ 等待桌長按下開始...</div>
+               {/* 🌟 成員主動退出按鈕 */}
+               <button onClick={handleLeaveRoom} style={{ ...btnStyle, background: '#fee2e2', color: '#ef4444', marginTop: '5px' }}>🚪 退出遊戲</button>
+              </>
+            )}
+            <button onClick={() => setView('home')} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontWeight: 'bold', padding: '10px' }}>🔙 返回大廳首頁</button>
+          </div>
         </div>
       )}
     </div>

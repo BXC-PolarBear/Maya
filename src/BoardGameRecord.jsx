@@ -82,7 +82,6 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
   const [activeTab, setActiveTab] = useState(amIPlaying ? 'my_game' : 'player_list');
   const [dataLoaded, setDataLoaded] = useState(!amIPlaying); 
 
-  // 🌟 取出完整印記名稱與圖騰
   let fullKinName = `KIN ${myData.kin || '未知'}`;
   let myKinSealImg = null;
   if (myData.kin) {
@@ -255,70 +254,69 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
 
   const removeFootprint = (id) => setRounds(rounds.filter(r => r.id !== id));
 
-  const blockStyle = { backgroundColor: '#fff', borderRadius: '16px', padding: '15px', marginBottom: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.04)' };
-  const compactInput = { width: '100%', minWidth: 0, padding: '6px 2px', borderRadius: '6px', border: '1px solid #f8bbd0', boxSizing: 'border-box', fontSize: '13px', textAlign: 'center' };
-  const inputStyle = { width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #f8bbd0', boxSizing: 'border-box', marginTop: '4px' };
-  const labelStyle = { fontSize: '11px', color: '#888', fontWeight: 'bold' };
+  const blockStyle = { backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '15px', marginBottom: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.04)' };
+  const compactInput = { width: '100%', minWidth: 0, padding: '6px 2px', borderRadius: '6px', border: '1px solid #DCD8D3', boxSizing: 'border-box', fontSize: '13px', textAlign: 'center', color: '#4A4A4A', outline: 'none' };
+  const inputStyle = { width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #DCD8D3', boxSizing: 'border-box', marginTop: '4px', color: '#4A4A4A', outline: 'none' };
+  const labelStyle = { fontSize: '11px', color: '#999999', fontWeight: 'bold' };
 
-  if (!dataLoaded) return <div style={{ textAlign: 'center', padding: '20px', color: '#d81b60' }}>讀取遊戲紀錄中...</div>;
+  if (!dataLoaded) return <div style={{ textAlign: 'center', padding: '20px', color: '#C87A7E' }}>讀取遊戲紀錄中...</div>;
 
   return (
     <div style={{ width: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-        <button onClick={onBack} style={{ background: '#f1f5f9', border: 'none', padding: '6px 12px', borderRadius: '8px', fontWeight: 'bold', color: '#64748b', cursor: 'pointer' }}>返回</button>
+        <button onClick={onBack} style={{ background: '#F5F3F0', border: 'none', padding: '6px 12px', borderRadius: '8px', fontWeight: 'bold', color: '#829BAC', cursor: 'pointer' }}>返回</button>
         {isHost && activeGameRoom.status !== 'ended' && (
-          <button onClick={handleEndGame} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>強制結束遊戲</button>
+          <button onClick={handleEndGame} style={{ background: '#C87A7E', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>強制結束遊戲</button>
         )}
       </div>
 
       {isHost && isHostPlaying && (
-        <div style={{ display: 'flex', width: '100%', marginBottom: '15px', backgroundColor: '#fff', borderRadius: '12px', padding: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-          <button onClick={() => setActiveTab('my_game')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'my_game' ? '#ffebee' : 'transparent', color: activeTab === 'my_game' ? '#d81b60' : '#888', fontWeight: 'bold', cursor: 'pointer' }}>🎮 我的遊戲</button>
-          <button onClick={() => setActiveTab('player_list')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'player_list' ? '#e3f2fd' : 'transparent', color: activeTab === 'player_list' ? '#1976d2' : '#888', fontWeight: 'bold', cursor: 'pointer' }}>👥 玩家列表</button>
+        <div style={{ display: 'flex', width: '100%', marginBottom: '15px', backgroundColor: '#FFFFFF', borderRadius: '12px', padding: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+          <button onClick={() => setActiveTab('my_game')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'my_game' ? '#F2EAEB' : 'transparent', color: activeTab === 'my_game' ? '#C87A7E' : '#999999', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s' }}>🎮 我的遊戲</button>
+          <button onClick={() => setActiveTab('player_list')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'player_list' ? '#EBEFF2' : 'transparent', color: activeTab === 'player_list' ? '#829BAC' : '#999999', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s' }}>👥 玩家列表</button>
         </div>
       )}
 
       {activeTab === 'player_list' ? ( <PlayerListView activeGameRoom={activeGameRoom} /> ) : (
       <>
-        {/* 🌟 玩家資訊區塊優化 */}
         <div style={blockStyle}>
-          <div style={{ fontSize: '12px', color: '#888', marginBottom: '8px', fontWeight: 'bold' }}>玩家資訊</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px', color: '#333' }}>
+          <div style={{ fontSize: '12px', color: '#999999', marginBottom: '8px', fontWeight: 'bold' }}>玩家資訊</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px', color: '#4A4A4A' }}>
             <div style={{ display: 'flex' }}>
-              <div style={{ flex: 1 }}><span style={{color:'#888'}}>姓名：</span>{myData.name}</div>
-              <div style={{ flex: 1 }}><span style={{color:'#888'}}>生日：</span>{myData.date}</div>
+              <div style={{ flex: 1 }}><span style={{color:'#999999'}}>姓名：</span>{myData.name}</div>
+              <div style={{ flex: 1 }}><span style={{color:'#999999'}}>生日：</span>{myData.date}</div>
             </div>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{color:'#888'}}>印記：</span>
+              <span style={{color:'#999999'}}>印記：</span>
               {myKinSealImg && <img src={myKinSealImg} alt="kin" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />}
-              <span style={{ fontWeight: 'bold', color: '#d81b60' }}>{fullKinName}</span>
+              <span style={{ fontWeight: 'bold', color: '#C87A7E' }}>{fullKinName}</span>
             </div>
 
             <div style={{ display: 'flex' }}>
-              <div style={{ flex: 1 }}><span style={{color:'#888'}}>波符：</span>{myData.wavespell}</div>
-              <div style={{ flex: 1 }}><span style={{color:'#888'}}>家族：</span>{myData.earthFamily}</div>
+              <div style={{ flex: 1 }}><span style={{color:'#999999'}}>波符：</span>{myData.wavespell}</div>
+              <div style={{ flex: 1 }}><span style={{color:'#999999'}}>家族：</span>{myData.earthFamily}</div>
             </div>
           </div>
         </div>
 
         <div style={blockStyle}>
-          <div style={{ fontSize: '14px', color: '#3949ab', marginBottom: '10px', fontWeight: 'bold' }}>✍️ 填寫印記設定 (由玩家輸入)</div>
-          <div style={{ display: 'flex', gap: '6px', fontSize: '11px', color: '#888', textAlign: 'center', marginBottom: '6px', paddingLeft: '46px' }}>
+          <div style={{ fontSize: '14px', color: '#829BAC', marginBottom: '10px', fontWeight: 'bold' }}>✍️ 填寫印記設定 (由玩家輸入)</div>
+          <div style={{ display: 'flex', gap: '6px', fontSize: '11px', color: '#999999', textAlign: 'center', marginBottom: '6px', paddingLeft: '46px' }}>
             <div style={{ flex: 1 }}>起始 Age</div><div style={{ flex: 1 }}>起始 KIN</div><div style={{ width: '8px' }}></div><div style={{ flex: 1 }}>流年 Age</div><div style={{ flex: 1 }}>流年 KIN</div>
           </div>
           {[1, 2, 3].map(r => (
             <div key={`r${r}`} style={{ display: 'flex', gap: '6px', marginBottom: '8px', alignItems: 'center' }}>
-              <div style={{ width: '40px', flexShrink: 0, textAlign: 'left', fontSize: '12px', fontWeight: 'bold', color: '#d81b60' }}>R {r}</div>
+              <div style={{ width: '40px', flexShrink: 0, textAlign: 'left', fontSize: '12px', fontWeight: 'bold', color: '#C87A7E' }}>R {r}</div>
               <input type="text" value={setup[`r${r}`].startAge} onChange={(e)=>handleSetupChange(`r${r}`, 'startAge', e.target.value)} style={{...compactInput, flex: 1}} placeholder="Age" />
               <input type="number" value={setup[`r${r}`].startKin} onChange={(e)=>handleSetupChange(`r${r}`, 'startKin', e.target.value)} style={{...compactInput, flex: 1}} placeholder="KIN" />
-              <div style={{ width: '8px', flexShrink: 0, textAlign: 'center', color: '#ccc', fontSize: '11px' }}>|</div>
+              <div style={{ width: '8px', flexShrink: 0, textAlign: 'center', color: '#DCD8D3', fontSize: '11px' }}>|</div>
               <input type="text" value={setup[`r${r}`].yearAge} onChange={(e)=>handleSetupChange(`r${r}`, 'yearAge', e.target.value)} style={{...compactInput, flex: 1}} placeholder="Age" />
               <input type="number" value={setup[`r${r}`].yearKin} onChange={(e)=>handleSetupChange(`r${r}`, 'yearKin', e.target.value)} style={{...compactInput, flex: 1}} placeholder="KIN" />
             </div>
           ))}
-          <div style={{ display: 'flex', gap: '6px', marginTop: '6px', paddingTop: '8px', borderTop: '1px dashed #eee', alignItems: 'center' }}>
-            <div style={{ width: '40px', flexShrink: 0, textAlign: 'left', fontSize: '12px', fontWeight: 'bold', color: '#d81b60' }}>END</div>
+          <div style={{ display: 'flex', gap: '6px', marginTop: '6px', paddingTop: '8px', borderTop: '1px dashed #E6E2DC', alignItems: 'center' }}>
+            <div style={{ width: '40px', flexShrink: 0, textAlign: 'left', fontSize: '12px', fontWeight: 'bold', color: '#C87A7E' }}>END</div>
             <input type="text" value={setup.end.age} onChange={(e)=>handleSetupChange('end', 'age', e.target.value)} style={{...compactInput, flex: 1}} placeholder="Age" />
             <input type="number" value={setup.end.kin} onChange={(e)=>handleSetupChange('end', 'kin', e.target.value)} style={{...compactInput, flex: 1}} placeholder="KIN" />
             <div style={{ width: '8px', flexShrink: 0 }}></div><div style={{ flex: 1 }}></div><div style={{ flex: 1 }}></div>
@@ -326,17 +324,17 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
         </div>
 
         <div style={blockStyle}>
-          <div style={{ fontSize: '15px', color: '#333', fontWeight: 'bold', marginBottom: '10px' }}>🐾 旅程足跡</div>
+          <div style={{ fontSize: '15px', color: '#4A4A4A', fontWeight: 'bold', marginBottom: '10px' }}>🐾 旅程足跡</div>
           {[1, 2, 3].map(roundNum => {
             if (roundNum > activeRound) return null; 
             const roundFootprints = calculatedRounds.filter(r => r.roundNum === roundNum);
             return (
-              <div key={`footprint-r${roundNum}`} style={{ marginBottom: '20px', background: '#fafafa', padding: '10px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#3949ab', marginBottom: '10px' }}>ROUND {roundNum}</div>
+              <div key={`footprint-r${roundNum}`} style={{ marginBottom: '20px', background: '#FDFCFB', padding: '10px', borderRadius: '12px', border: '1px solid #E6E2DC' }}>
+                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#829BAC', marginBottom: '10px' }}>ROUND {roundNum}</div>
                 {roundFootprints.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '10px' }}>
                     {roundFootprints.map((r, i) => {
-                      const fColorHex = cardColors.find(c=>c.id===r.color)?.hex || '#ccc';
+                      const fColorHex = cardColors.find(c=>c.id===r.color)?.hex || '#DCD8D3';
                       const kinSealImg = seals[r.currentKin % 20]?.img;
                       const cardInfo = cardsData.find(c => c[0] === (r.rawInput?.cardId || ''));
                       const cardImgUrl = getCardIcon(cardInfo ? cardInfo[2] : '');
@@ -352,16 +350,16 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
                       const logKinColor = darkerMorandiColors[logColorId];
 
                       return (
-                      <div key={r.id} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '8px', background: '#fff', padding: '12px', borderRadius: '8px', borderLeft: `4px solid ${fColorHex}`, boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
+                      <div key={r.id} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '8px', background: '#FFFFFF', padding: '12px', borderRadius: '8px', borderLeft: `4px solid ${fColorHex}`, boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
                         
                         {activeGameRoom.status !== 'ended' && (
                           <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '6px' }}>
-                            <button onClick={() => handleEditFootprint(r)} style={{ background: '#f1f5f9', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '12px', padding: '4px 6px', borderRadius: '4px' }}>✏️</button>
-                            <button onClick={() => removeFootprint(r.id)} style={{ background: '#fee2e2', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '12px', padding: '4px 6px', borderRadius: '4px' }}>✖</button>
+                            <button onClick={() => handleEditFootprint(r)} style={{ background: '#EBEFF2', border: 'none', color: '#829BAC', cursor: 'pointer', fontSize: '12px', padding: '4px 6px', borderRadius: '4px' }}>✏️</button>
+                            <button onClick={() => removeFootprint(r.id)} style={{ background: '#F2EAEB', border: 'none', color: '#C87A7E', cursor: 'pointer', fontSize: '12px', padding: '4px 6px', borderRadius: '4px' }}>✖</button>
                           </div>
                         )}
 
-                        <span style={{ fontSize: '11px', color: '#888', paddingRight: '60px' }}>足跡 {i+1} | 骰: {r.diceSteps} | 前進: {r.fastForward}</span>
+                        <span style={{ fontSize: '11px', color: '#999999', paddingRight: '60px' }}>足跡 {i+1} | 骰: {r.diceSteps} | 前進: {r.fastForward}</span>
                         
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {kinSealImg && <img src={kinSealImg} alt="kin" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />}
@@ -370,13 +368,13 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {cardImgUrl ? (
-                            <div style={{ flexShrink: 0, width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${fColorHex}`, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                            <div style={{ flexShrink: 0, width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#FDFCFB', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${fColorHex}`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                               <img src={cardImgUrl} alt="card" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
                             </div>
                           ) : (
                             <div style={{ flexShrink: 0, width: '12px', height: '12px', borderRadius: '50%', backgroundColor: fColorHex }}></div>
                           )}
-                          <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#333', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#4A4A4A', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <span style={{ color: fColorHex }}>#{r.rawInput?.cardId || '未知'}</span>
                             <span>{r.cardType || '牌卡'}</span>
                             <span style={{ fontWeight: '900', color: r.score >= 0 ? '#8D9F8C' : '#C87A7E', fontSize: '14px', marginLeft: '2px' }}>
@@ -386,7 +384,7 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
                         </div>
 
                         {cardText && (
-                          <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5', marginTop: '2px', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', borderLeft: `3px solid ${fColorHex}80` }}>
+                          <div style={{ fontSize: '13px', color: '#6B6B6B', lineHeight: '1.5', marginTop: '2px', background: '#FDFCFB', padding: '8px 10px', borderRadius: '6px', borderLeft: `3px solid ${fColorHex}80` }}>
                             {cardText}
                           </div>
                         )}
@@ -397,17 +395,17 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
                 {activeRound === roundNum && activeGameRoom.status !== 'ended' && !hasCalculated && (
                   <div style={{ marginTop: '10px' }}>
                     {!isAddingRound ? (
-                      <button onClick={() => setIsAddingRound(true)} style={{ width: '100%', background: '#fce4ec', color: '#d81b60', border: '1px dashed #d81b60', padding: '8px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>+ 新增足跡</button>
+                      <button onClick={() => setIsAddingRound(true)} style={{ width: '100%', background: '#F2EAEB', color: '#C87A7E', border: '1px dashed #C87A7E', padding: '8px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>+ 新增足跡</button>
                     ) : (
-                      <div style={{ backgroundColor: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid #f8bbd0' }}>
-                        <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#d81b60', marginBottom: '10px', textAlign: 'center' }}>{editingId ? '✏️ 修改足跡設定' : '➕ 新增足跡設定'}</div>
+                      <div style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #DCD8D3' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#C87A7E', marginBottom: '10px', textAlign: 'center' }}>{editingId ? '✏️ 修改足跡設定' : '➕ 新增足跡設定'}</div>
                         <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}><div style={{ flex: 1 }}><span style={labelStyle}>骰子步數</span><input type="number" placeholder="若無請留空" value={diceSteps} onChange={(e)=>setDiceSteps(e.target.value)} style={inputStyle} /></div></div>
                         
                         {(() => {
-                          let previewKinColorHex = '#f3e5f5'; 
-                          let previewLabelColor = '#8e24aa'; 
-                          let previewKinTextColor = '#4a148c'; 
-                          let previewBorderColor = '#ce93d8'; 
+                          let previewKinColorHex = '#EFEBF0'; 
+                          let previewLabelColor = '#9B8B9E'; 
+                          let previewKinTextColor = '#706373'; 
+                          let previewBorderColor = '#DCD8D3'; 
 
                           if (previewKin) {
                             let colorId;
@@ -435,7 +433,7 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
                                   {seals[previewKin % 20]?.img && <img src={seals[previewKin % 20].img} alt="kin" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />}
                                   KIN {previewKin}
                                 </span> 
-                              ) : ( <span style={{ fontSize: '12px', color: '#ef4444' }}>⚠️ 請先填寫 ROUND {activeRound} 起始 KIN</span> )}
+                              ) : ( <span style={{ fontSize: '12px', color: '#C87A7E' }}>⚠️ 請先填寫 ROUND {activeRound} 起始 KIN</span> )}
                             </div>
                           );
                         })()}
@@ -443,28 +441,27 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
                         <div style={{ marginBottom: '10px' }}><span style={labelStyle}>卡牌編號</span><input type="text" placeholder="例如：515" value={cardId} onChange={(e)=>setCardId(e.target.value)} style={inputStyle} /></div>
                         {cardId && (() => {
                           const card = cardsData.find(c => c[0] === cardId);
-                          if (!card) return <div style={{ fontSize: '12px', color: '#ef4444', marginBottom: '10px' }}>找不到此卡牌編號，請重新確認。</div>;
+                          if (!card) return <div style={{ fontSize: '12px', color: '#C87A7E', marginBottom: '10px' }}>找不到此卡牌編號，請重新確認。</div>;
                           const cText = card[1], cImg = card[2], cColorStr = card[3], cType = card[4];
-                          const colorMap = { '紅': '#C87A7E', '白': '#C4C1BC', '藍': '#829BAC', '黃': '#D1B475', '綠': '#8D9F8C' };
-                          const hex = colorMap[cColorStr] || '#ccc';
+                          const borderHex = colorStyles[cColorStr] || '#DCD8D3';
                           return (
-                            <div style={{ background: '#fafafa', padding: '12px', borderRadius: '8px', border: `2px solid ${hex}`, marginBottom: '15px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>{getCardIcon(cImg) && <img src={getCardIcon(cImg)} alt="icon" style={{ height: '30px', objectFit: 'contain' }} />}<div><span style={{ fontSize: '11px', background: hex, color: '#fff', padding: '2px 6px', borderRadius: '4px', marginRight: '6px' }}>{cColorStr}色</span><span style={{ fontSize: '12px', fontWeight: 'bold', color: '#333' }}>{cType}</span></div></div>
-                              <div style={{ fontSize: '13px', color: '#555', marginBottom: '15px', lineHeight: '1.4', textAlign: 'justify' }}>{cText}</div>
+                            <div style={{ background: '#FDFCFB', padding: '12px', borderRadius: '8px', border: `2px solid ${borderHex}`, marginBottom: '15px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>{getCardIcon(cImg) && <img src={getCardIcon(cImg)} alt="icon" style={{ height: '30px', objectFit: 'contain' }} />}<div><span style={{ fontSize: '11px', background: borderHex, color: '#fff', padding: '2px 6px', borderRadius: '4px', marginRight: '6px' }}>{cColorStr}色</span><span style={{ fontSize: '12px', fontWeight: 'bold', color: '#4A4A4A' }}>{cType}</span></div></div>
+                              <div style={{ fontSize: '13px', color: '#6B6B6B', marginBottom: '15px', lineHeight: '1.4', textAlign: 'justify' }}>{cText}</div>
                               {['發揮力量', '知與行', '靈魂拷問'].includes(cType) && (<div style={{ marginBottom: '10px' }}><span style={labelStyle}>🎯 卡牌得分骰子 (請輸入數字)</span><input type="number" min="1" max="6" value={scoreDice} onChange={e=>setScoreDice(e.target.value)} style={inputStyle} /></div>)}
-                              {['奇蹟顯化', '成就顯化', '靈魂拷問'].includes(cType) && (<div style={{ marginBottom: '10px', background: '#e0f2fe', padding: '8px', borderRadius: '6px' }}><span style={labelStyle}>🚀 快速前進骰子 (請輸入數字)</span><input type="number" min="1" max="6" value={ffDice} onChange={e=>setFfDice(e.target.value)} style={{...inputStyle, background: '#fff'}} /><div style={{ fontSize: '11px', color: '#0284c7', marginTop: '6px', fontWeight: 'bold' }}>⚡ 將額外快進 { (parseInt(ffDice)||0) * (cType==='奇蹟顯化'?10 : cType==='成就顯化'?5 : 1) } 步</div></div>)}
+                              {['奇蹟顯化', '成就顯化', '靈魂拷問'].includes(cType) && (<div style={{ marginBottom: '10px', background: '#EBEFF2', padding: '8px', borderRadius: '6px' }}><span style={labelStyle}>🚀 快速前進骰子 (請輸入數字)</span><input type="number" min="1" max="6" value={ffDice} onChange={e=>setFfDice(e.target.value)} style={{...inputStyle, background: '#FFFFFF'}} /><div style={{ fontSize: '11px', color: '#829BAC', marginTop: '6px', fontWeight: 'bold' }}>⚡ 將額外快進 { (parseInt(ffDice)||0) * (cType==='奇蹟顯化'?10 : cType==='成就顯化'?5 : 1) } 步</div></div>)}
                               {cType === '宇宙訊息' && (<div style={{ marginBottom: '10px' }}><span style={labelStyle}>🌟 宇宙訊息選擇</span><select value={msgChoice} onChange={e=>setMsgChoice(e.target.value)} style={inputStyle}><option value="solo">獨享 (+5分)</option><option value="benefactor">貴人 (+10分)</option><option value="gifted">受贈 (+5分)</option></select></div>)}
                               {['人生練習題'].includes(cType) && <div style={{ fontSize: '12px', color: '#C87A7E', fontWeight: 'bold' }}>⚠️ 系統將自動扣 5 分</div>}{['天賦喚醒力', '成就顯化'].includes(cType) && <div style={{ fontSize: '12px', color: '#8D9F8C', fontWeight: 'bold' }}>✨ 系統將自動加 5 分</div>}{['奇蹟顯化'].includes(cType) && <div style={{ fontSize: '12px', color: '#8D9F8C', fontWeight: 'bold' }}>🎉 系統將自動加 10 分</div>}
                             </div>
                           );
                         })()}
-                        <div style={{ display: 'flex', gap: '10px' }}><button onClick={() => { setIsAddingRound(false); setEditingId(null); }} style={{ flex: 1, padding: '10px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>取消</button><button onClick={handleAddFootprint} style={{ flex: 2, padding: '10px', background: '#3949ab', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>確認送出</button></div>
+                        <div style={{ display: 'flex', gap: '10px' }}><button onClick={() => { setIsAddingRound(false); setEditingId(null); }} style={{ flex: 1, padding: '10px', background: '#F5F3F0', color: '#829BAC', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>取消</button><button onClick={handleAddFootprint} style={{ flex: 2, padding: '10px', background: '#829BAC', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 10px rgba(130, 155, 172, 0.3)' }}>確認送出</button></div>
                       </div>
                     )}
                   </div>
                 )}
                 {activeRound === roundNum && activeRound < 3 && !isAddingRound && activeGameRoom.status !== 'ended' && !hasCalculated && (
-                  <button onClick={() => setActiveRound(activeRound + 1)} style={{ width: '100%', marginTop: '15px', padding: '10px', background: '#e0f2fe', color: '#0284c7', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>進入下一回合 (ROUND {activeRound + 1}) ⬇️</button>
+                  <button onClick={() => setActiveRound(activeRound + 1)} style={{ width: '100%', marginTop: '15px', padding: '10px', background: '#EBEFF2', color: '#829BAC', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>進入下一回合 (ROUND {activeRound + 1}) ⬇️</button>
                 )}
               </div>
             );
@@ -473,33 +470,33 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
 
         {/* 🌟 核心：意識頻率結算區塊 */}
         {!hasCalculated ? (
-          <button onClick={() => setHasCalculated(true)} style={{ width: '100%', padding: '15px', background: 'linear-gradient(135deg, #ab47bc 0%, #7b1fa2 100%)', color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold', fontSize: '16px', marginBottom: '20px', boxShadow: '0 4px 15px rgba(171, 71, 188, 0.4)', cursor: 'pointer' }}>
+          <button onClick={() => setHasCalculated(true)} style={{ width: '100%', padding: '15px', background: 'linear-gradient(135deg, #9B8B9E 0%, #706373 100%)', color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold', fontSize: '16px', marginBottom: '20px', boxShadow: '0 4px 15px rgba(155, 139, 158, 0.4)', cursor: 'pointer' }}>
             ✨ 結算本場意識頻率
           </button>
         ) : (
-          <div style={{...blockStyle, backgroundColor: '#f3e5f5', border: '1px solid #ce93d8', animation: 'fadeIn 0.5s' }}>
-            <h3 style={{ margin: '0 0 15px 0', fontSize: '16px', color: '#6a1b9a', textAlign: 'center' }}>📊 意識頻率結算報告</h3>
+          <div style={{...blockStyle, backgroundColor: '#EFEBF0', border: '1px solid #DCD8D3', animation: 'fadeIn 0.5s' }}>
+            <h3 style={{ margin: '0 0 15px 0', fontSize: '16px', color: '#9B8B9E', textAlign: 'center' }}>📊 意識頻率結算報告</h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '5px', textAlign: 'center', marginBottom: '15px' }}>
                {[ { id: 'red', label: '紅', hex: '#C87A7E' }, { id: 'white', label: '白', hex: '#C4C1BC' }, { id: 'blue', label: '藍', hex: '#829BAC' }, { id: 'yellow', label: '黃', hex: '#D1B475' }, { id: 'green', label: '綠', hex: '#8D9F8C' } ].map(c => (
-                 <div key={c.id} style={{ background: '#fff', padding: '8px 0', borderRadius: '8px', border: `1px solid ${c.hex}` }}>
+                 <div key={c.id} style={{ background: '#FFFFFF', padding: '8px 0', borderRadius: '8px', border: `1px solid ${c.hex}` }}>
                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: c.hex }}></div>
                      <div style={{ fontSize: '11px', color: c.hex, fontWeight: 'bold' }}>{c.label}</div>
                    </div>
                    <div style={{ fontSize: '18px', fontWeight: '900', color: c.hex, marginTop: '4px' }}>{colorScores[c.id]} 分</div>
-                   <div style={{ fontSize: '10px', color: '#888', marginTop: '2px' }}>頻率 {finalScores[c.id]}</div>
+                   <div style={{ fontSize: '10px', color: '#999999', marginTop: '2px' }}>頻率 {finalScores[c.id]}</div>
                  </div>
                ))}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px', fontWeight: 'bold', color: '#4a148c' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px', fontWeight: 'bold', color: '#706373' }}>
               <span>總頻率: {totalFrequency}</span><span>{currentStage.name}</span>
             </div>
 
-            <div style={{ width: '100%', height: '24px', borderRadius: '12px', overflow: 'hidden', display: 'flex', backgroundColor: '#e2e8f0', marginBottom: '10px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)' }}>
+            <div style={{ width: '100%', height: '24px', borderRadius: '12px', overflow: 'hidden', display: 'flex', backgroundColor: '#E6E2DC', marginBottom: '10px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' }}>
                {totalFrequency === 0 ? (
-                 <div style={{ width: '100%', background: '#ccc', textAlign: 'center', color: '#fff', fontSize: '10px', lineHeight: '24px' }}>無頻率產生</div>
+                 <div style={{ width: '100%', background: '#DCD8D3', textAlign: 'center', color: '#FFFFFF', fontSize: '10px', lineHeight: '24px' }}>無頻率產生</div>
                ) : (
                  <>
                    <div style={{ width: `${(finalScores.red / totalFrequency) * 100}%`, backgroundColor: '#C87A7E', transition: 'width 1s' }}></div>
@@ -511,19 +508,19 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
                )}
             </div>
             
-            <div style={{ padding: '12px', backgroundColor: '#fff', borderRadius: '10px', fontSize: '13px', color: '#333', textAlign: 'center', lineHeight: '1.5', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+            <div style={{ padding: '12px', backgroundColor: '#FFFFFF', borderRadius: '10px', fontSize: '13px', color: '#4A4A4A', textAlign: 'center', lineHeight: '1.5', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
               {currentStage.desc}
             </div>
 
             <div style={{ marginTop: '20px' }}>
-              <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#6a1b9a' }}>🦋 看見的重複模式或課題</label>
+              <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#9B8B9E' }}>🦋 看見的重複模式或課題</label>
               <textarea rows="3" placeholder="在這次旅程中，我發現..." value={reflection} onChange={(e)=>setReflection(e.target.value)} style={{...inputStyle, resize: 'none', marginBottom: '10px'}} />
               
-              <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#6a1b9a' }}>🔥 下一步的突破行動宣告</label>
+              <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#9B8B9E' }}>🔥 下一步的突破行動宣告</label>
               <textarea rows="2" placeholder="接下來，我決定..." value={nextAction} onChange={(e)=>setNextAction(e.target.value)} style={{...inputStyle, resize: 'none'}} />
             </div>
             
-            <button onClick={() => saveToCloud(true)} style={{ width: '100%', padding: '14px', background: '#26a69a', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', marginTop: '15px', fontSize: '15px', boxShadow: '0 4px 10px rgba(38, 166, 154, 0.3)' }}>
+            <button onClick={() => saveToCloud(true)} style={{ width: '100%', padding: '14px', background: '#8D9F8C', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', marginTop: '15px', fontSize: '15px', boxShadow: '0 4px 10px rgba(141, 159, 140, 0.3)' }}>
               💾 封存戰報與反思
             </button>
           </div>
@@ -556,16 +553,15 @@ function PlayerListView({ activeGameRoom }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-      <h3 style={{ color: '#1976d2', margin: '0 0 5px 0', fontSize: '16px', textAlign: 'center' }}>👥 戰況即時監控板</h3>
-      <p style={{ fontSize: '12px', color: '#888', textAlign: 'center', marginTop: '-5px', marginBottom: '10px' }}>點擊玩家卡片可查看詳細紀錄</p>
+      <h3 style={{ color: '#829BAC', margin: '0 0 5px 0', fontSize: '16px', textAlign: 'center' }}>👥 戰況即時監控板</h3>
+      <p style={{ fontSize: '12px', color: '#999999', textAlign: 'center', marginTop: '-5px', marginBottom: '10px' }}>點擊玩家卡片可查看詳細紀錄</p>
       
       {activeGameRoom.players.map(p => {
         const rec = allRecords[p.uid];
         const summary = rec?.summary || { activeRound: 1, currentKin: '未開始', totalScore: 0 };
-        const isHostTag = p.isHost ? <span style={{ fontSize: '10px', background: '#ffc107', padding: '2px 6px', borderRadius: '10px', marginLeft: '5px', color: '#333' }}>桌長</span> : null;
-        const statusBadge = summary.hasCalculated ? <span style={{ fontSize: '10px', background: '#ce93d8', color: '#fff', padding: '2px 6px', borderRadius: '10px' }}>已結算</span> : <span style={{ fontSize: '10px', background: '#8D9F8C', color: '#fff', padding: '2px 6px', borderRadius: '10px' }}>進行中</span>;
+        const isHostTag = p.isHost ? <span style={{ fontSize: '10px', background: '#FBF8F1', color: '#D1B475', padding: '2px 6px', borderRadius: '10px', marginLeft: '5px' }}>桌長</span> : null;
+        const statusBadge = summary.hasCalculated ? <span style={{ fontSize: '10px', background: '#9B8B9E', color: '#fff', padding: '2px 6px', borderRadius: '10px' }}>已結算</span> : <span style={{ fontSize: '10px', background: '#8D9F8C', color: '#fff', padding: '2px 6px', borderRadius: '10px' }}>進行中</span>;
 
-        // 🌟 取出完整印記名稱與圖騰
         let pFullKinName = `KIN ${p.kin || '未知'}`;
         let pKinImg = null;
         if (p.kin) {
@@ -579,19 +575,19 @@ function PlayerListView({ activeGameRoom }) {
         }
 
         return (
-          <div key={p.uid} onClick={() => setViewingPlayerId(p.uid)} style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '15px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', borderLeft: '4px solid #3b82f6', cursor: 'pointer', transition: 'transform 0.1s' }}>
+          <div key={p.uid} onClick={() => setViewingPlayerId(p.uid)} style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '15px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', borderLeft: '4px solid #829BAC', cursor: 'pointer', transition: 'transform 0.1s' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
               {pKinImg && <img src={pKinImg} alt="kin" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />}
               <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: '2px' }}>
-                <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#333' }}>{p.name} {isHostTag}</div>
-                <div style={{ fontSize: '12px', color: '#64748b' }}>{pFullKinName}</div>
+                <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#4A4A4A' }}>{p.name} {isHostTag}</div>
+                <div style={{ fontSize: '12px', color: '#7A7A7A' }}>{pFullKinName}</div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{statusBadge}<span style={{ fontSize: '14px', color: '#1976d2' }}>🔍</span></div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{statusBadge}<span style={{ fontSize: '14px', color: '#829BAC' }}>🔍</span></div>
             </div>
-            <div style={{ display: 'flex', background: '#f8f9fa', borderRadius: '8px', padding: '10px', gap: '10px', textAlign: 'center' }}>
-              <div style={{ flex: 1 }}><div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>當前 KIN</div><div style={{ fontSize: '14px', fontWeight: 'bold', color: '#d81b60' }}>{summary.currentKin}</div></div>
-              <div style={{ width: '1px', background: '#e2e8f0' }}></div>
-              <div style={{ flex: 1 }}><div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>{summary.hasCalculated ? '總頻率' : '獲得總分'}</div><div style={{ fontSize: '14px', fontWeight: 'bold', color: summary.hasCalculated ? '#6a1b9a' : '#8D9F8C' }}>{summary.totalScore}</div></div>
+            <div style={{ display: 'flex', background: '#F5F4F1', borderRadius: '8px', padding: '10px', gap: '10px', textAlign: 'center' }}>
+              <div style={{ flex: 1 }}><div style={{ fontSize: '11px', color: '#7A7A7A', marginBottom: '2px' }}>當前 KIN</div><div style={{ fontSize: '14px', fontWeight: 'bold', color: '#C87A7E' }}>{summary.currentKin}</div></div>
+              <div style={{ width: '1px', background: '#E6E2DC' }}></div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: '11px', color: '#7A7A7A', marginBottom: '2px' }}>{summary.hasCalculated ? '總頻率' : '獲得總分'}</div><div style={{ fontSize: '14px', fontWeight: 'bold', color: summary.hasCalculated ? '#9B8B9E' : '#8D9F8C' }}>{summary.totalScore}</div></div>
             </div>
           </div>
         );
@@ -605,7 +601,6 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
   const rounds = record?.rounds || [];
   const summary = record?.summary || {};
   
-  // 🌟 取出完整印記名稱與圖騰
   let fullKinName = `KIN ${player.kin || '未知'}`;
   let pKinImg = null;
   if (player.kin) {
@@ -642,45 +637,44 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
   const totalFrequency = finalScores.red + finalScores.white + finalScores.blue + finalScores.yellow + finalScores.green;
   const currentStage = frequencyStages.find(s => totalFrequency <= s.max) || frequencyStages[4];
 
-  const blockStyle = { backgroundColor: '#fff', borderRadius: '16px', padding: '15px', marginBottom: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.04)' };
-  const readOnlyCell = { flex: 1, padding: '6px 2px', background: '#f8f9fa', borderRadius: '6px', fontSize: '13px', textAlign: 'center', color: '#333', minHeight: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+  const blockStyle = { backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '15px', marginBottom: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.04)' };
+  const readOnlyCell = { flex: 1, padding: '6px 2px', background: '#FDFCFB', borderRadius: '6px', fontSize: '13px', textAlign: 'center', color: '#4A4A4A', minHeight: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center' };
 
   return (
     <div style={{ width: '100%', animation: 'fadeIn 0.3s' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', background: '#e3f2fd', padding: '10px 15px', borderRadius: '12px' }}>
-         <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1976d2' }}>{player.name} 的詳細紀錄</span>
-         <button onClick={onBack} style={{ background: '#1976d2', border: 'none', color: '#fff', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>返回</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', background: '#EBEFF2', padding: '10px 15px', borderRadius: '12px' }}>
+         <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#829BAC' }}>{player.name} 的詳細紀錄</span>
+         <button onClick={onBack} style={{ background: '#829BAC', border: 'none', color: '#fff', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>返回</button>
       </div>
 
-      {/* 🌟 唯讀模式也加入完整的玩家資訊區塊 */}
       <div style={blockStyle}>
-        <div style={{ fontSize: '12px', color: '#888', marginBottom: '8px', fontWeight: 'bold' }}>玩家資訊</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px', color: '#333' }}>
+        <div style={{ fontSize: '12px', color: '#999999', marginBottom: '8px', fontWeight: 'bold' }}>玩家資訊</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px', color: '#4A4A4A' }}>
           <div style={{ display: 'flex' }}>
-            <div style={{ flex: 1 }}><span style={{color:'#888'}}>姓名：</span>{player.name}</div>
-            <div style={{ flex: 1 }}><span style={{color:'#888'}}>生日：</span>{player.date || '未知'}</div>
+            <div style={{ flex: 1 }}><span style={{color:'#999999'}}>姓名：</span>{player.name}</div>
+            <div style={{ flex: 1 }}><span style={{color:'#999999'}}>生日：</span>{player.date || '未知'}</div>
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{color:'#888'}}>印記：</span>
+            <span style={{color:'#999999'}}>印記：</span>
             {pKinImg && <img src={pKinImg} alt="kin" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />}
-            <span style={{ fontWeight: 'bold', color: '#d81b60' }}>{fullKinName}</span>
+            <span style={{ fontWeight: 'bold', color: '#C87A7E' }}>{fullKinName}</span>
           </div>
 
           <div style={{ display: 'flex' }}>
-            <div style={{ flex: 1 }}><span style={{color:'#888'}}>波符：</span>{player.wavespell || '未知'}</div>
-            <div style={{ flex: 1 }}><span style={{color:'#888'}}>家族：</span>{player.earthFamily || '未知'}</div>
+            <div style={{ flex: 1 }}><span style={{color:'#999999'}}>波符：</span>{player.wavespell || '未知'}</div>
+            <div style={{ flex: 1 }}><span style={{color:'#999999'}}>家族：</span>{player.earthFamily || '未知'}</div>
           </div>
         </div>
       </div>
 
       {summary.hasCalculated && (
-        <div style={{...blockStyle, backgroundColor: '#f3e5f5', border: '1px solid #ce93d8'}}>
-          <h3 style={{ margin: '0 0 10px 0', fontSize: '15px', color: '#6a1b9a', textAlign: 'center' }}>📊 玩家已完成結算</h3>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '12px', fontWeight: 'bold', color: '#4a148c' }}>
+        <div style={{...blockStyle, backgroundColor: '#EFEBF0', border: '1px solid #DCD8D3'}}>
+          <h3 style={{ margin: '0 0 10px 0', fontSize: '15px', color: '#9B8B9E', textAlign: 'center' }}>📊 玩家已完成結算</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '12px', fontWeight: 'bold', color: '#706373' }}>
             <span>總頻率: {totalFrequency}</span><span>{currentStage.name}</span>
           </div>
-          <div style={{ width: '100%', height: '16px', borderRadius: '8px', overflow: 'hidden', display: 'flex', backgroundColor: '#e2e8f0', marginBottom: '15px' }}>
+          <div style={{ width: '100%', height: '16px', borderRadius: '8px', overflow: 'hidden', display: 'flex', backgroundColor: '#E6E2DC', marginBottom: '15px' }}>
              {totalFrequency > 0 && (
                <>
                  <div style={{ width: `${(finalScores.red/totalFrequency)*100}%`, background: '#C87A7E' }}></div>
@@ -691,36 +685,36 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
                </>
              )}
           </div>
-          {summary.reflection && <div style={{ background: '#fff', padding: '10px', borderRadius: '8px', marginBottom: '8px' }}><div style={{ fontSize: '11px', color: '#6a1b9a', fontWeight: 'bold' }}>看見的模式或課題：</div><div style={{ fontSize: '13px', color: '#333' }}>{summary.reflection}</div></div>}
-          {summary.nextAction && <div style={{ background: '#fff', padding: '10px', borderRadius: '8px' }}><div style={{ fontSize: '11px', color: '#6a1b9a', fontWeight: 'bold' }}>突破行動宣告：</div><div style={{ fontSize: '13px', color: '#333' }}>{summary.nextAction}</div></div>}
+          {summary.reflection && <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', marginBottom: '8px' }}><div style={{ fontSize: '11px', color: '#9B8B9E', fontWeight: 'bold' }}>看見的模式或課題：</div><div style={{ fontSize: '13px', color: '#4A4A4A' }}>{summary.reflection}</div></div>}
+          {summary.nextAction && <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px' }}><div style={{ fontSize: '11px', color: '#9B8B9E', fontWeight: 'bold' }}>突破行動宣告：</div><div style={{ fontSize: '13px', color: '#4A4A4A' }}>{summary.nextAction}</div></div>}
         </div>
       )}
 
       <div style={blockStyle}>
-        <div style={{ fontSize: '14px', color: '#3949ab', marginBottom: '10px', fontWeight: 'bold' }}>✍️ 印記設定</div>
-        <div style={{ display: 'flex', gap: '6px', fontSize: '11px', color: '#888', textAlign: 'center', marginBottom: '6px', paddingLeft: '46px' }}>
+        <div style={{ fontSize: '14px', color: '#829BAC', marginBottom: '10px', fontWeight: 'bold' }}>✍️ 印記設定</div>
+        <div style={{ display: 'flex', gap: '6px', fontSize: '11px', color: '#999999', textAlign: 'center', marginBottom: '6px', paddingLeft: '46px' }}>
           <div style={{ flex: 1 }}>起始 Age</div><div style={{ flex: 1 }}>起始 KIN</div><div style={{ width: '8px' }}></div><div style={{ flex: 1 }}>流年 Age</div><div style={{ flex: 1 }}>流年 KIN</div>
         </div>
         {[1, 2, 3].map(r => (
           <div key={`read-r${r}`} style={{ display: 'flex', gap: '6px', marginBottom: '8px', alignItems: 'center' }}>
-            <div style={{ width: '40px', flexShrink: 0, textAlign: 'left', fontSize: '12px', fontWeight: 'bold', color: '#d81b60' }}>R {r}</div>
-            <div style={readOnlyCell}>{setup[`r${r}`]?.startAge || '-'}</div><div style={readOnlyCell}>{setup[`r${r}`]?.startKin || '-'}</div><div style={{ width: '8px', flexShrink: 0, textAlign: 'center', color: '#ccc', fontSize: '11px' }}>|</div><div style={readOnlyCell}>{setup[`r${r}`]?.yearAge || '-'}</div><div style={readOnlyCell}>{setup[`r${r}`]?.yearKin || '-'}</div>
+            <div style={{ width: '40px', flexShrink: 0, textAlign: 'left', fontSize: '12px', fontWeight: 'bold', color: '#C87A7E' }}>R {r}</div>
+            <div style={readOnlyCell}>{setup[`r${r}`]?.startAge || '-'}</div><div style={readOnlyCell}>{setup[`r${r}`]?.startKin || '-'}</div><div style={{ width: '8px', flexShrink: 0, textAlign: 'center', color: '#DCD8D3', fontSize: '11px' }}>|</div><div style={readOnlyCell}>{setup[`r${r}`]?.yearAge || '-'}</div><div style={readOnlyCell}>{setup[`r${r}`]?.yearKin || '-'}</div>
           </div>
         ))}
       </div>
 
       <div style={blockStyle}>
-        <div style={{ fontSize: '15px', color: '#333', fontWeight: 'bold', marginBottom: '10px' }}>🐾 旅程足跡</div>
-        {calculatedRounds.length === 0 ? <div style={{ color: '#888', fontSize: '13px', textAlign: 'center', padding: '10px' }}>尚無足跡</div> : (
+        <div style={{ fontSize: '15px', color: '#4A4A4A', fontWeight: 'bold', marginBottom: '10px' }}>🐾 旅程足跡</div>
+        {calculatedRounds.length === 0 ? <div style={{ color: '#999999', fontSize: '13px', textAlign: 'center', padding: '10px' }}>尚無足跡</div> : (
           [1, 2, 3].map(roundNum => {
             const rFootprints = calculatedRounds.filter(r => r.roundNum === roundNum);
             if (rFootprints.length === 0) return null;
             return (
-              <div key={`read-footprint-r${roundNum}`} style={{ marginBottom: '15px', background: '#fafafa', padding: '10px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#3949ab', marginBottom: '10px' }}>ROUND {roundNum}</div>
+              <div key={`read-footprint-r${roundNum}`} style={{ marginBottom: '15px', background: '#FDFCFB', padding: '10px', borderRadius: '12px', border: '1px solid #E6E2DC' }}>
+                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#829BAC', marginBottom: '10px' }}>ROUND {roundNum}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '10px' }}>
                   {rFootprints.map((r, i) => {
-                    const fColorHex = cardColors.find(c=>c.id===r.color)?.hex || '#ccc';
+                    const fColorHex = cardColors.find(c=>c.id===r.color)?.hex || '#DCD8D3';
                     const kinSealImg = seals[r.currentKin % 20]?.img;
                     const cardInfo = cardsData.find(c => c[0] === (r.rawInput?.cardId || ''));
                     const cardImgUrl = getCardIcon(cardInfo ? cardInfo[2] : '');
@@ -736,9 +730,9 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
                     const logKinColor = darkerMorandiColors[logColorId];
 
                     return (
-                    <div key={r.id} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '8px', background: '#fff', padding: '12px', borderRadius: '8px', borderLeft: `4px solid ${fColorHex}`, boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
+                    <div key={r.id} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '8px', background: '#FFFFFF', padding: '12px', borderRadius: '8px', borderLeft: `4px solid ${fColorHex}`, boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
                       
-                      <span style={{ fontSize: '11px', color: '#888', paddingRight: '60px' }}>足跡 {i+1} | 骰: {r.diceSteps} | 前進: {r.fastForward}</span>
+                      <span style={{ fontSize: '11px', color: '#999999', paddingRight: '60px' }}>足跡 {i+1} | 骰: {r.diceSteps} | 前進: {r.fastForward}</span>
                       
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {kinSealImg && <img src={kinSealImg} alt="kin" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />}
@@ -747,13 +741,13 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {cardImgUrl ? (
-                          <div style={{ flexShrink: 0, width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${fColorHex}`, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                          <div style={{ flexShrink: 0, width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#FDFCFB', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${fColorHex}`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                             <img src={cardImgUrl} alt="card" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
                           </div>
                         ) : (
                           <div style={{ flexShrink: 0, width: '12px', height: '12px', borderRadius: '50%', backgroundColor: fColorHex }}></div>
                         )}
-                        <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#333', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#4A4A4A', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span style={{ color: fColorHex }}>#{r.rawInput?.cardId || '未知'}</span>
                           <span>{r.cardType || '牌卡'}</span>
                           <span style={{ fontWeight: '900', color: r.score >= 0 ? '#8D9F8C' : '#C87A7E', fontSize: '14px', marginLeft: '2px' }}>
@@ -763,7 +757,7 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
                       </div>
 
                       {cardText && (
-                        <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5', marginTop: '2px', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', borderLeft: `3px solid ${fColorHex}80` }}>
+                        <div style={{ fontSize: '13px', color: '#6B6B6B', lineHeight: '1.5', marginTop: '2px', background: '#FDFCFB', padding: '8px 10px', borderRadius: '6px', borderLeft: `3px solid ${fColorHex}80` }}>
                           {cardText}
                         </div>
                       )}

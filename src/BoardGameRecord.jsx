@@ -76,19 +76,22 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
   const isHost = activeGameRoom.hostId === user.uid;
   const isHostPlaying = activeGameRoom.isHostPlaying;
   const amIPlaying = !isHost || isHostPlaying; 
-
+  
   const myData = activeGameRoom.players.find(p => p.uid === user.uid) || {};
 
   const [activeTab, setActiveTab] = useState(amIPlaying ? 'my_game' : 'player_list');
   const [dataLoaded, setDataLoaded] = useState(!amIPlaying); 
 
+  // 🌟 取出完整印記名稱與圖騰
   let fullKinName = `KIN ${myData.kin || '未知'}`;
+  let myKinSealImg = null;
   if (myData.kin) {
     const kNum = parseInt(myData.kin, 10);
     if (!isNaN(kNum)) {
       const tNum = ((kNum - 1) % 13) + 1;
       const mIdx = kNum % 20;
       fullKinName = `KIN ${kNum} ${toneNames[tNum - 1] || ''}的${seals[mIdx] ? seals[mIdx].name : ''}`;
+      myKinSealImg = seals[mIdx]?.img;
     }
   }
 
@@ -98,7 +101,7 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
     r3: { startAge: '', startKin: '', yearAge: '', yearKin: '' },
     end: { age: '', kin: '' }
   });
-
+  
   const handleSetupChange = (round, field, value) => {
     setSetup(prev => ({ ...prev, [round]: { ...prev[round], [field]: value } }));
   };
@@ -153,15 +156,15 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
   [1, 2, 3].forEach(rNum => {
     const rFootprints = rounds.filter(f => f.roundNum === rNum);
     const startKin = parseInt(setup[`r${rNum}`].startKin, 10) || 0;
-
+    
     rFootprints.forEach((f, i) => {
       const prev = i > 0 ? calculatedRounds[calculatedRounds.length - 1] : null;
       const base = prev ? prev.currentKin + (prev.fastForward || 0) : startKin;
       const dSteps = parseInt(f.diceSteps) || 0;
-
+      
       let k = (base + dSteps) % 260;
       const calcKin = k === 0 ? 260 : k;
-
+      
       calculatedRounds.push({ ...f, currentKin: calcKin });
       if (colorScores[f.color] !== undefined) colorScores[f.color] += (f.score || 0);
     });
@@ -183,7 +186,7 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
     const dSteps = parseInt(diceSteps) || 0;
     const rFootprints = calculatedRounds.filter(r => r.roundNum === activeRound);
     let prevFootprint = editingId ? rFootprints[rFootprints.findIndex(f => f.id === editingId) - 1] : rFootprints[rFootprints.length - 1];
-
+    
     const base = prevFootprint ? prevFootprint.currentKin + (prevFootprint.fastForward || 0) : startKin;
     let k = (base + dSteps) % 260;
     previewKin = k === 0 ? 260 : k;
@@ -194,13 +197,13 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
     try {
       const recordRef = doc(db, 'game_rooms', activeGameRoom.id, 'player_records', user.uid);
       const currentKinValue = calculatedRounds.length > 0 ? calculatedRounds[calculatedRounds.length - 1].currentKin : (setup[`r${activeRound}`]?.startKin || '尚未設定');
-
+      
       await setDoc(recordRef, {
         setup, rounds, 
         summary: { activeRound, currentKin: currentKinValue, totalScore: totalFrequency, hasCalculated, reflection, nextAction }, 
         updatedAt: Date.now()
       }, { merge: true });
-
+      
       if (isManualAction) alert("💾 紀錄與反思已成功封存同步至雲端！\n您可以隨時在「玩家列表」中檢視。");
     } catch (e) {
       if (isManualAction) alert("存檔失敗：" + e.message);
@@ -277,12 +280,25 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
 
       {activeTab === 'player_list' ? ( <PlayerListView activeGameRoom={activeGameRoom} /> ) : (
       <>
+        {/* 🌟 玩家資訊區塊優化 */}
         <div style={blockStyle}>
           <div style={{ fontSize: '12px', color: '#888', marginBottom: '8px', fontWeight: 'bold' }}>玩家資訊</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px', color: '#333' }}>
-            <div style={{ display: 'flex' }}><div style={{ flex: 1 }}><span style={{color:'#888'}}>姓名：</span>{myData.name}</div><div style={{ flex: 1 }}><span style={{color:'#888'}}>生日：</span>{myData.date}</div></div>
-            <div><span style={{color:'#888'}}>印記：</span>{fullKinName}</div>
-            <div style={{ display: 'flex' }}><div style={{ flex: 1 }}><span style={{color:'#888'}}>波符：</span>{myData.wavespell}</div><div style={{ flex: 1 }}><span style={{color:'#888'}}>家族：</span>{myData.earthFamily}</div></div>
+            <div style={{ display: 'flex' }}>
+              <div style={{ flex: 1 }}><span style={{color:'#888'}}>姓名：</span>{myData.name}</div>
+              <div style={{ flex: 1 }}><span style={{color:'#888'}}>生日：</span>{myData.date}</div>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{color:'#888'}}>印記：</span>
+              {myKinSealImg && <img src={myKinSealImg} alt="kin" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />}
+              <span style={{ fontWeight: 'bold', color: '#d81b60' }}>{fullKinName}</span>
+            </div>
+
+            <div style={{ display: 'flex' }}>
+              <div style={{ flex: 1 }}><span style={{color:'#888'}}>波符：</span>{myData.wavespell}</div>
+              <div style={{ flex: 1 }}><span style={{color:'#888'}}>家族：</span>{myData.earthFamily}</div>
+            </div>
           </div>
         </div>
 
@@ -326,7 +342,6 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
                       const cardImgUrl = getCardIcon(cardInfo ? cardInfo[2] : '');
                       const cardText = cardInfo ? cardInfo[1] : '';
 
-                      // 🌟 KIN 文字顏色判定 (支援 52綠網格 覆蓋)
                       let logColorId;
                       if (galacticPortals.includes(r.currentKin)) {
                         logColorId = 'green';
@@ -338,7 +353,7 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
 
                       return (
                       <div key={r.id} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '8px', background: '#fff', padding: '12px', borderRadius: '8px', borderLeft: `4px solid ${fColorHex}`, boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
-
+                        
                         {activeGameRoom.status !== 'ended' && (
                           <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '6px' }}>
                             <button onClick={() => handleEditFootprint(r)} style={{ background: '#f1f5f9', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '12px', padding: '4px 6px', borderRadius: '4px' }}>✏️</button>
@@ -347,7 +362,7 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
                         )}
 
                         <span style={{ fontSize: '11px', color: '#888', paddingRight: '60px' }}>足跡 {i+1} | 骰: {r.diceSteps} | 前進: {r.fastForward}</span>
-
+                        
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {kinSealImg && <img src={kinSealImg} alt="kin" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />}
                           <span style={{ fontSize: '14px', fontWeight: '900', color: logKinColor, letterSpacing: '0.5px' }}>KIN {r.currentKin}</span>
@@ -387,8 +402,7 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
                       <div style={{ backgroundColor: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid #f8bbd0' }}>
                         <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#d81b60', marginBottom: '10px', textAlign: 'center' }}>{editingId ? '✏️ 修改足跡設定' : '➕ 新增足跡設定'}</div>
                         <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}><div style={{ flex: 1 }}><span style={labelStyle}>骰子步數</span><input type="number" placeholder="若無請留空" value={diceSteps} onChange={(e)=>setDiceSteps(e.target.value)} style={inputStyle} /></div></div>
-
-                        {/* 🌟 動態 KIN 底色預覽 (支援綠色 GAP 網格) */}
+                        
                         {(() => {
                           let previewKinColorHex = '#f3e5f5'; 
                           let previewLabelColor = '#8e24aa'; 
@@ -465,7 +479,7 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
         ) : (
           <div style={{...blockStyle, backgroundColor: '#f3e5f5', border: '1px solid #ce93d8', animation: 'fadeIn 0.5s' }}>
             <h3 style={{ margin: '0 0 15px 0', fontSize: '16px', color: '#6a1b9a', textAlign: 'center' }}>📊 意識頻率結算報告</h3>
-
+            
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '5px', textAlign: 'center', marginBottom: '15px' }}>
                {[ { id: 'red', label: '紅', hex: '#C87A7E' }, { id: 'white', label: '白', hex: '#C4C1BC' }, { id: 'blue', label: '藍', hex: '#829BAC' }, { id: 'yellow', label: '黃', hex: '#D1B475' }, { id: 'green', label: '綠', hex: '#8D9F8C' } ].map(c => (
                  <div key={c.id} style={{ background: '#fff', padding: '8px 0', borderRadius: '8px', border: `1px solid ${c.hex}` }}>
@@ -496,7 +510,7 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
                  </>
                )}
             </div>
-
+            
             <div style={{ padding: '12px', backgroundColor: '#fff', borderRadius: '10px', fontSize: '13px', color: '#333', textAlign: 'center', lineHeight: '1.5', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
               {currentStage.desc}
             </div>
@@ -504,11 +518,11 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
             <div style={{ marginTop: '20px' }}>
               <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#6a1b9a' }}>🦋 看見的重複模式或課題</label>
               <textarea rows="3" placeholder="在這次旅程中，我發現..." value={reflection} onChange={(e)=>setReflection(e.target.value)} style={{...inputStyle, resize: 'none', marginBottom: '10px'}} />
-
+              
               <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#6a1b9a' }}>🔥 下一步的突破行動宣告</label>
               <textarea rows="2" placeholder="接下來，我決定..." value={nextAction} onChange={(e)=>setNextAction(e.target.value)} style={{...inputStyle, resize: 'none'}} />
             </div>
-
+            
             <button onClick={() => saveToCloud(true)} style={{ width: '100%', padding: '14px', background: '#26a69a', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', marginTop: '15px', fontSize: '15px', boxShadow: '0 4px 10px rgba(38, 166, 154, 0.3)' }}>
               💾 封存戰報與反思
             </button>
@@ -544,17 +558,34 @@ function PlayerListView({ activeGameRoom }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
       <h3 style={{ color: '#1976d2', margin: '0 0 5px 0', fontSize: '16px', textAlign: 'center' }}>👥 戰況即時監控板</h3>
       <p style={{ fontSize: '12px', color: '#888', textAlign: 'center', marginTop: '-5px', marginBottom: '10px' }}>點擊玩家卡片可查看詳細紀錄</p>
-
+      
       {activeGameRoom.players.map(p => {
         const rec = allRecords[p.uid];
         const summary = rec?.summary || { activeRound: 1, currentKin: '未開始', totalScore: 0 };
         const isHostTag = p.isHost ? <span style={{ fontSize: '10px', background: '#ffc107', padding: '2px 6px', borderRadius: '10px', marginLeft: '5px', color: '#333' }}>桌長</span> : null;
         const statusBadge = summary.hasCalculated ? <span style={{ fontSize: '10px', background: '#ce93d8', color: '#fff', padding: '2px 6px', borderRadius: '10px' }}>已結算</span> : <span style={{ fontSize: '10px', background: '#8D9F8C', color: '#fff', padding: '2px 6px', borderRadius: '10px' }}>進行中</span>;
 
+        // 🌟 取出完整印記名稱與圖騰
+        let pFullKinName = `KIN ${p.kin || '未知'}`;
+        let pKinImg = null;
+        if (p.kin) {
+          const kNum = parseInt(p.kin, 10);
+          if (!isNaN(kNum)) {
+            const tNum = ((kNum - 1) % 13) + 1;
+            const mIdx = kNum % 20;
+            pFullKinName = `KIN ${kNum} ${toneNames[tNum - 1] || ''}的${seals[mIdx] ? seals[mIdx].name : ''}`;
+            pKinImg = seals[mIdx]?.img;
+          }
+        }
+
         return (
           <div key={p.uid} onClick={() => setViewingPlayerId(p.uid)} style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '15px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', borderLeft: '4px solid #3b82f6', cursor: 'pointer', transition: 'transform 0.1s' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#333' }}>{p.name} {isHostTag}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+              {pKinImg && <img src={pKinImg} alt="kin" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />}
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: '2px' }}>
+                <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#333' }}>{p.name} {isHostTag}</div>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>{pFullKinName}</div>
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{statusBadge}<span style={{ fontSize: '14px', color: '#1976d2' }}>🔍</span></div>
             </div>
             <div style={{ display: 'flex', background: '#f8f9fa', borderRadius: '8px', padding: '10px', gap: '10px', textAlign: 'center' }}>
@@ -573,20 +604,23 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
   const setup = record?.setup || { r1: {}, r2: {}, r3: {}, end: {} };
   const rounds = record?.rounds || [];
   const summary = record?.summary || {};
-
+  
+  // 🌟 取出完整印記名稱與圖騰
   let fullKinName = `KIN ${player.kin || '未知'}`;
+  let pKinImg = null;
   if (player.kin) {
     const kNum = parseInt(player.kin, 10);
     if (!isNaN(kNum)) {
       const tNum = ((kNum - 1) % 13) + 1;
       const mIdx = kNum % 20;
       fullKinName = `KIN ${kNum} ${toneNames[tNum - 1] || ''}的${seals[mIdx] ? seals[mIdx].name : ''}`;
+      pKinImg = seals[mIdx]?.img;
     }
   }
 
   const calculatedRounds = [];
   const colorScores = { red: 0, white: 0, blue: 0, yellow: 0, green: 0 };
-
+  
   [1, 2, 3].forEach(rNum => {
     const rFootprints = rounds.filter(f => f.roundNum === rNum);
     const startKin = parseInt(setup[`r${rNum}`]?.startKin, 10) || 0;
@@ -616,6 +650,28 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', background: '#e3f2fd', padding: '10px 15px', borderRadius: '12px' }}>
          <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1976d2' }}>{player.name} 的詳細紀錄</span>
          <button onClick={onBack} style={{ background: '#1976d2', border: 'none', color: '#fff', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>返回</button>
+      </div>
+
+      {/* 🌟 唯讀模式也加入完整的玩家資訊區塊 */}
+      <div style={blockStyle}>
+        <div style={{ fontSize: '12px', color: '#888', marginBottom: '8px', fontWeight: 'bold' }}>玩家資訊</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px', color: '#333' }}>
+          <div style={{ display: 'flex' }}>
+            <div style={{ flex: 1 }}><span style={{color:'#888'}}>姓名：</span>{player.name}</div>
+            <div style={{ flex: 1 }}><span style={{color:'#888'}}>生日：</span>{player.date || '未知'}</div>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{color:'#888'}}>印記：</span>
+            {pKinImg && <img src={pKinImg} alt="kin" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />}
+            <span style={{ fontWeight: 'bold', color: '#d81b60' }}>{fullKinName}</span>
+          </div>
+
+          <div style={{ display: 'flex' }}>
+            <div style={{ flex: 1 }}><span style={{color:'#888'}}>波符：</span>{player.wavespell || '未知'}</div>
+            <div style={{ flex: 1 }}><span style={{color:'#888'}}>家族：</span>{player.earthFamily || '未知'}</div>
+          </div>
+        </div>
       </div>
 
       {summary.hasCalculated && (
@@ -681,9 +737,9 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
 
                     return (
                     <div key={r.id} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '8px', background: '#fff', padding: '12px', borderRadius: '8px', borderLeft: `4px solid ${fColorHex}`, boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
-
+                      
                       <span style={{ fontSize: '11px', color: '#888', paddingRight: '60px' }}>足跡 {i+1} | 骰: {r.diceSteps} | 前進: {r.fastForward}</span>
-
+                      
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {kinSealImg && <img src={kinSealImg} alt="kin" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />}
                         <span style={{ fontSize: '14px', fontWeight: '900', color: logKinColor, letterSpacing: '0.5px' }}>KIN {r.currentKin}</span>

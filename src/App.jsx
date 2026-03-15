@@ -64,7 +64,7 @@ const MiniOracleCard = ({ title, kinNum, kinDetails, oracleDetails }) => {
         <div style={{ gridArea: '1 / 1 / 2 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={oracleDetails.wavespellSeal.img} alt="波符" style={{ width: '18px', opacity: 0.8 }} /></div>
         <div style={{ gridArea: '1 / 2 / 2 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={oracleDetails.guideSeal.img} alt="引導" style={{ width: '28px' }} /></div>
         <div style={{ gridArea: '2 / 1 / 3 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={oracleDetails.challengeSeal.img} alt="挑戰" style={{ width: '28px' }} /></div>
-        <div style={{ gridArea: '2 / 2 / 3 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={`/tone_${oracleDetails.tone}.png`} alt="調性" style={{ height: '8px', marginBottom: '4px', objectFit: 'contain' }} /><img src={oracleDetails.mainSeal.img} alt="主印記" style={{ width: '42px' }} /><img src={`/tone_${oracleDetails.bottomTone}.png`} alt="推動調性" style={{ height: '8px', marginTop: '4px', objectFit: 'contain' }} /></div>
+        <div style={{ gridArea: '2 / 2 / 3 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={`/tone_${oracleDetails.tone}.png`} alt="調性" style={{ height: '8px', marginBottom: '4px', objectFit: 'contain' }} /><img src={oracleDetails.mainSeal.img} alt="主印記" style={{ width: '42px' }} /><img src={`/tone_${oracleDetails.bottomTone}.png`} alt="推抛調性" style={{ height: '8px', marginTop: '4px', objectFit: 'contain' }} /></div>
         <div style={{ gridArea: '2 / 3 / 3 / 4', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={oracleDetails.supportSeal.img} alt="支持" style={{ width: '28px' }} /></div>
         <div style={{ gridArea: '3 / 2 / 4 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={oracleDetails.hiddenSeal.img} alt="隱藏推動" style={{ width: '28px' }} /></div>
       </div>
@@ -785,7 +785,8 @@ export default function App() {
                       <button onClick={() => setViewingTarget('today')} style={{ width: '100%', padding: '10px', background: '#EBEFF2', color: '#829BAC', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>查看詳細資訊</button>
                     </div>
 
-                    <button onClick={() => setViewingTarget('custom')} style={{ width: '100%', padding: '15px', borderRadius: '16px', background: '#FDFCFB', border: '2px dashed #DCD8D3', color: '#829BAC', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+                    {/* 🌟 修改為有底色的按鈕 (莫蘭迪綠) */}
+                    <button onClick={() => setViewingTarget('custom')} style={{ width: '100%', padding: '15px', borderRadius: '16px', background: '#8D9F8C', border: 'none', color: '#FFFFFF', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', boxShadow: '0 4px 10px rgba(141, 159, 140, 0.3)' }}>
                        🔍 查詢親友印記
                     </button>
                   </div>

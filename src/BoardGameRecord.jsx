@@ -135,7 +135,6 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
           if (snap.exists()) {
             const data = snap.data();
             
-            // 🌟 防呆：確保舊資料載入時，就算沒有 end，也會補上預設結構，不被蓋掉
             if (data.setup) {
               setSetup({
                 r1: data.setup.r1 || { startAge: '', startKin: '', yearAge: '', yearKin: '' },
@@ -331,7 +330,6 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
               <input type="number" value={setup[`r${r}`]?.yearKin || ''} onChange={(e)=>handleSetupChange(`r${r}`, 'yearKin', e.target.value)} style={{...compactInput, flex: 1}} placeholder="KIN" />
             </div>
           ))}
-          {/* 🌟 確保 END 輸入區塊穩定顯示與綁定 */}
           <div style={{ display: 'flex', gap: '6px', marginTop: '6px', paddingTop: '8px', borderTop: '1px dashed #E6E2DC', alignItems: 'center' }}>
             <div style={{ width: '40px', flexShrink: 0, textAlign: 'left', fontSize: '12px', fontWeight: 'bold', color: '#C87A7E' }}>END</div>
             <input type="text" value={setup.end?.age || ''} onChange={(e)=>handleSetupChange('end', 'age', e.target.value)} style={{...compactInput, flex: 1}} placeholder="Age" />
@@ -497,8 +495,9 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
           <div style={{...blockStyle, backgroundColor: '#EFEBF0', border: '1px solid #DCD8D3', animation: 'fadeIn 0.5s' }}>
             <h3 style={{ margin: '0 0 15px 0', fontSize: '16px', color: '#9B8B9E', textAlign: 'center' }}>📊 意識頻率結算報告</h3>
             
+            {/* 🌟 修改點：結算小卡順序調整為「綠紅白藍黃」 */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '5px', textAlign: 'center', marginBottom: '15px' }}>
-               {[ { id: 'red', label: '紅', hex: '#C87A7E' }, { id: 'white', label: '白', hex: '#C4C1BC' }, { id: 'blue', label: '藍', hex: '#829BAC' }, { id: 'yellow', label: '黃', hex: '#D1B475' }, { id: 'green', label: '綠', hex: '#8D9F8C' } ].map(c => (
+               {[ { id: 'green', label: '綠', hex: '#8D9F8C' }, { id: 'red', label: '紅', hex: '#C87A7E' }, { id: 'white', label: '白', hex: '#C4C1BC' }, { id: 'blue', label: '藍', hex: '#829BAC' }, { id: 'yellow', label: '黃', hex: '#D1B475' } ].map(c => (
                  <div key={c.id} style={{ background: '#FFFFFF', padding: '8px 0', borderRadius: '8px', border: `1px solid ${c.hex}` }}>
                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: c.hex }}></div>
@@ -514,16 +513,17 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
               <span>總頻率: {totalFrequency}</span><span>{currentStage.name}</span>
             </div>
 
+            {/* 🌟 修改點：進度條順序調整為「綠紅白藍黃」 */}
             <div style={{ width: '100%', height: '24px', borderRadius: '12px', overflow: 'hidden', display: 'flex', backgroundColor: '#E6E2DC', marginBottom: '10px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' }}>
                {totalFrequency === 0 ? (
                  <div style={{ width: '100%', background: '#DCD8D3', textAlign: 'center', color: '#FFFFFF', fontSize: '10px', lineHeight: '24px' }}>無頻率產生</div>
                ) : (
                  <>
+                   <div style={{ width: `${(finalScores.green / totalFrequency) * 100}%`, backgroundColor: '#8D9F8C', transition: 'width 1s' }}></div>
                    <div style={{ width: `${(finalScores.red / totalFrequency) * 100}%`, backgroundColor: '#C87A7E', transition: 'width 1s' }}></div>
                    <div style={{ width: `${(finalScores.white / totalFrequency) * 100}%`, backgroundColor: '#C4C1BC', transition: 'width 1s' }}></div>
                    <div style={{ width: `${(finalScores.blue / totalFrequency) * 100}%`, backgroundColor: '#829BAC', transition: 'width 1s' }}></div>
                    <div style={{ width: `${(finalScores.yellow / totalFrequency) * 100}%`, backgroundColor: '#D1B475', transition: 'width 1s' }}></div>
-                   <div style={{ width: `${(finalScores.green / totalFrequency) * 100}%`, backgroundColor: '#8D9F8C', transition: 'width 1s' }}></div>
                  </>
                )}
             </div>
@@ -694,14 +694,16 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '12px', fontWeight: 'bold', color: '#706373' }}>
             <span>總頻率: {totalFrequency}</span><span>{currentStage.name}</span>
           </div>
+          
+          {/* 🌟 修改點：結算小卡順序調整為「綠紅白藍黃」 */}
           <div style={{ width: '100%', height: '16px', borderRadius: '8px', overflow: 'hidden', display: 'flex', backgroundColor: '#E6E2DC', marginBottom: '15px' }}>
              {totalFrequency > 0 && (
                <>
+                 <div style={{ width: `${(finalScores.green/totalFrequency)*100}%`, background: '#8D9F8C' }}></div>
                  <div style={{ width: `${(finalScores.red/totalFrequency)*100}%`, background: '#C87A7E' }}></div>
                  <div style={{ width: `${(finalScores.white/totalFrequency)*100}%`, background: '#C4C1BC' }}></div>
                  <div style={{ width: `${(finalScores.blue/totalFrequency)*100}%`, background: '#829BAC' }}></div>
                  <div style={{ width: `${(finalScores.yellow/totalFrequency)*100}%`, background: '#D1B475' }}></div>
-                 <div style={{ width: `${(finalScores.green/totalFrequency)*100}%`, background: '#8D9F8C' }}></div>
                </>
              )}
           </div>
@@ -721,7 +723,6 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
             <div style={readOnlyCell}>{setup[`r${r}`]?.startAge || '-'}</div><div style={readOnlyCell}>{setup[`r${r}`]?.startKin || '-'}</div><div style={{ width: '8px', flexShrink: 0, textAlign: 'center', color: '#DCD8D3', fontSize: '11px' }}>|</div><div style={readOnlyCell}>{setup[`r${r}`]?.yearAge || '-'}</div><div style={readOnlyCell}>{setup[`r${r}`]?.yearKin || '-'}</div>
           </div>
         ))}
-        {/* 🌟 唯讀模式也補上 END 顯示區塊 */}
         <div style={{ display: 'flex', gap: '6px', marginTop: '6px', paddingTop: '8px', borderTop: '1px dashed #E6E2DC', alignItems: 'center' }}>
           <div style={{ width: '40px', flexShrink: 0, textAlign: 'left', fontSize: '12px', fontWeight: 'bold', color: '#C87A7E' }}>END</div>
           <div style={readOnlyCell}>{setup.end?.age || '-'}</div>

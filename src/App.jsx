@@ -18,10 +18,9 @@ import { timeMatrix, spaceMatrix, synchronicMatrix } from './Matrix441';
 import BoardGameRecord from './BoardGameRecord';
 import GameLobbyManager from './GameLobbyManager';
 
+// 🌟 修正：拔除本地端干擾，讓管理員名單正確顯示個別使用者的資料庫名稱
 const getSafeName = (userObj) => {
   if (!userObj) return "旅人";
-  const localName = localStorage.getItem('line_displayName');
-  if (localName) return localName;
   if (userObj.displayName) return userObj.displayName;
   if (userObj.email && !userObj.email.includes('line.bxc.com')) {
     const parts = userObj.email.split('@');
@@ -84,7 +83,7 @@ const getTodayString = () => {
 export default function App() {
   const [user, setUser] = useState(null); 
   const [isInitializing, setIsInitializing] = useState(true); 
-  const [isLoginProcessing, setIsLoginProcessing] = useState(false); // 🌟 新增登入處理中狀態
+  const [isLoginProcessing, setIsLoginProcessing] = useState(false); 
   const [lineProfile, setLineProfile] = useState(null);
   const [date, setDate] = useState(getTodayString());
   const [userName, setUserName] = useState(''); 
@@ -110,7 +109,6 @@ export default function App() {
   const [showBasicConfig, setShowBasicConfig] = useState(true);
   const [showAdvancedData, setShowAdvancedData] = useState(true);
 
-  // 桌遊與大廳相關狀態
   const [activeGameRoom, setActiveGameRoom] = useState(null);
   const [isGameUnlocked, setIsGameUnlocked] = useState(localStorage.getItem('bxc_game_unlocked') === 'true');
   const [inviteCode, setInviteCode] = useState('');
@@ -133,7 +131,6 @@ export default function App() {
     else localStorage.removeItem('bxc_admin');
   };
 
-  // 🌟 獨立提取 Firebase 登入引擎 (解決卡頓核心)
   const performFirebaseLogin = async (profile) => {
     const lineEmail = `${profile.userId}@line.bxc.com`;
     const linePassword = `Liff_${profile.userId}_Secret`; 
@@ -297,7 +294,6 @@ export default function App() {
     catch (e) { }
   };
 
-  // 🌟 修正假死按鈕：強制喚醒機制
   const handleLineLogin = async () => {
     if (isLoginProcessing) return;
     setIsLoginProcessing(true);
@@ -305,7 +301,6 @@ export default function App() {
       if (!liff.isLoggedIn()) {
         liff.login();
       } else {
-        // 如果 LINE 顯示登入，但 Firebase 卡住了，強制重走 Firebase 登入流程
         const profile = await liff.getProfile();
         setLineProfile(profile);
         if (profile.displayName) localStorage.setItem('line_displayName', profile.displayName);
@@ -531,7 +526,6 @@ export default function App() {
             <img src="/Bxc Balance LOGO.png" alt="LOGO" style={{ width: '120px', marginBottom: '25px' }} />
             <h2 style={{ color: '#d81b60', margin: '0 0 10px 0', letterSpacing: '1px' }}>登入星系矩陣</h2>
             
-            {/* 🌟 修改過的登入按鈕：增加載入狀態與強制喚醒 */}
             <button 
               type="button" 
               onClick={handleLineLogin} 

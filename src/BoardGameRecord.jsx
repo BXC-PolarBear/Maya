@@ -28,25 +28,23 @@ const morandiTzolkinColors = {
   white: '#C4C1BC', 
   blue: '#829BAC',  
   yellow: '#D1B475',
-  green: '#8D9F8C'  // 綠色網格專屬
+  green: '#8D9F8C'  
 };
 
-// 🎨 刷淡的莫蘭迪底色 (預覽區塊底色專用)
 const lightMorandiTzolkinColors = {
   red: '#F9F1F2',   
   white: '#F7F6F5', 
   blue: '#F0F4F7',  
   yellow: '#FBF8F1',
-  green: '#F2F5F2'  // 刷淡的鼠尾草綠
+  green: '#F2F5F2'  
 };
 
-// 🎨 較深的莫蘭迪色 (預覽區塊文字專用，增加對比度)
 const darkerMorandiColors = {
   red: '#A85A5E',
   white: '#8A8782', 
   blue: '#5A7588',
   yellow: '#A68A4A',
-  green: '#627361'  // 較深的鼠尾草綠
+  green: '#627361'  
 };
 
 const getCardIcon = (imgStr) => {
@@ -73,10 +71,11 @@ const frequencyStages = [
 ];
 
 export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
+  // 🌟 修正點：用「玩家名單內是否包含該 UID」來精準判定，完美兼容舊版沒有 isHostPlaying 屬性的房間
   const isHost = activeGameRoom.hostId === user.uid;
-  const isHostPlaying = activeGameRoom.isHostPlaying;
-  const amIPlaying = !isHost || isHostPlaying; 
-  
+  const amIPlaying = activeGameRoom.players.some(p => p.uid === user.uid);
+  const isHostPlaying = activeGameRoom.players.some(p => p.uid === activeGameRoom.hostId);
+
   const myData = activeGameRoom.players.find(p => p.uid === user.uid) || {};
 
   const [activeTab, setActiveTab] = useState(amIPlaying ? 'my_game' : 'player_list');

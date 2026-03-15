@@ -22,6 +22,15 @@ const cardColors = [
   { id: 'green', name: '顯化矩陣', hex: '#8D9F8C' }
 ];
 
+// 🌟 修正點：補上遺漏的卡牌中文對照調色盤，防止輸入卡號時白畫面崩潰
+const colorStyles = {
+  '紅': '#C87A7E',
+  '白': '#C4C1BC', 
+  '藍': '#829BAC',
+  '黃': '#D1B475',
+  '綠': '#8D9F8C'
+};
+
 // 🎨 莫蘭迪卓爾金曆色碼 (瑪雅 KIN 專用)
 const morandiTzolkinColors = {
   red: '#C87A7E',   
@@ -321,153 +330,153 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
           </div>
         </div>
 
-        {/* 🌟 修正點：移除多餘的空足跡隱藏邏輯，讓新遊戲也能順利顯示新增按鈕 */}
         <div style={blockStyle}>
           <div style={{ fontSize: '15px', color: '#4A4A4A', fontWeight: 'bold', marginBottom: '10px' }}>🐾 旅程足跡</div>
-          {[1, 2, 3].map(roundNum => {
-            if (roundNum > activeRound) return null; 
-            const roundFootprints = calculatedRounds.filter(r => r.roundNum === roundNum);
-            return (
-              <div key={`footprint-r${roundNum}`} style={{ marginBottom: '20px', background: '#FDFCFB', padding: '10px', borderRadius: '12px', border: '1px solid #E6E2DC' }}>
-                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#829BAC', marginBottom: '10px' }}>ROUND {roundNum}</div>
-                
-                {roundFootprints.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '10px' }}>
-                    {roundFootprints.map((r, i) => {
-                      const fColorHex = cardColors.find(c=>c.id===r.color)?.hex || '#DCD8D3';
-                      const kinSealImg = seals[r.currentKin % 20]?.img;
-                      const cardInfo = cardsData.find(c => c[0] === (r.rawInput?.cardId || ''));
-                      const cardImgUrl = getCardIcon(cardInfo ? cardInfo[2] : '');
-                      const cardText = cardInfo ? cardInfo[1] : '';
+          {calculatedRounds.length === 0 ? <div style={{ color: '#999999', fontSize: '13px', textAlign: 'center', padding: '10px' }}>尚無足跡</div> : (
+            [1, 2, 3].map(roundNum => {
+              if (roundNum > activeRound) return null; 
+              const roundFootprints = calculatedRounds.filter(r => r.roundNum === roundNum);
+              return (
+                <div key={`footprint-r${roundNum}`} style={{ marginBottom: '20px', background: '#FDFCFB', padding: '10px', borderRadius: '12px', border: '1px solid #E6E2DC' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#829BAC', marginBottom: '10px' }}>ROUND {roundNum}</div>
+                  
+                  {roundFootprints.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '10px' }}>
+                      {roundFootprints.map((r, i) => {
+                        const fColorHex = cardColors.find(c=>c.id===r.color)?.hex || '#DCD8D3';
+                        const kinSealImg = seals[r.currentKin % 20]?.img;
+                        const cardInfo = cardsData.find(c => c[0] === (r.rawInput?.cardId || ''));
+                        const cardImgUrl = getCardIcon(cardInfo ? cardInfo[2] : '');
+                        const cardText = cardInfo ? cardInfo[1] : '';
 
-                      let logColorId;
-                      if (galacticPortals.includes(r.currentKin)) {
-                        logColorId = 'green';
-                      } else {
-                        const logKinRemainder = r.currentKin % 4;
-                        logColorId = logKinRemainder === 1 ? 'red' : logKinRemainder === 2 ? 'white' : logKinRemainder === 3 ? 'blue' : 'yellow';
-                      }
-                      const logKinColor = darkerMorandiColors[logColorId];
+                        let logColorId;
+                        if (galacticPortals.includes(r.currentKin)) {
+                          logColorId = 'green';
+                        } else {
+                          const logKinRemainder = r.currentKin % 4;
+                          logColorId = logKinRemainder === 1 ? 'red' : logKinRemainder === 2 ? 'white' : logKinRemainder === 3 ? 'blue' : 'yellow';
+                        }
+                        const logKinColor = darkerMorandiColors[logColorId];
 
-                      return (
-                      <div key={r.id} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '8px', background: '#FFFFFF', padding: '12px', borderRadius: '8px', borderLeft: `4px solid ${fColorHex}`, boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
-                        
-                        {activeGameRoom.status !== 'ended' && (
-                          <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '6px' }}>
-                            <button onClick={() => handleEditFootprint(r)} style={{ background: '#EBEFF2', border: 'none', color: '#829BAC', cursor: 'pointer', fontSize: '12px', padding: '4px 6px', borderRadius: '4px' }}>✏️</button>
-                            <button onClick={() => removeFootprint(r.id)} style={{ background: '#F2EAEB', border: 'none', color: '#C87A7E', cursor: 'pointer', fontSize: '12px', padding: '4px 6px', borderRadius: '4px' }}>✖</button>
-                          </div>
-                        )}
-
-                        <span style={{ fontSize: '11px', color: '#999999', paddingRight: '60px' }}>足跡 {i+1} | 骰: {r.diceSteps} | 前進: {r.fastForward}</span>
-                        
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {kinSealImg && <img src={kinSealImg} alt="kin" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />}
-                          <span style={{ fontSize: '14px', fontWeight: '900', color: logKinColor, letterSpacing: '0.5px' }}>KIN {r.currentKin}</span>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {cardImgUrl ? (
-                            <div style={{ flexShrink: 0, width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#FDFCFB', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${fColorHex}`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                              <img src={cardImgUrl} alt="card" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
+                        return (
+                        <div key={r.id} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '8px', background: '#FFFFFF', padding: '12px', borderRadius: '8px', borderLeft: `4px solid ${fColorHex}`, boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
+                          
+                          {activeGameRoom.status !== 'ended' && (
+                            <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '6px' }}>
+                              <button onClick={() => handleEditFootprint(r)} style={{ background: '#EBEFF2', border: 'none', color: '#829BAC', cursor: 'pointer', fontSize: '12px', padding: '4px 6px', borderRadius: '4px' }}>✏️</button>
+                              <button onClick={() => removeFootprint(r.id)} style={{ background: '#F2EAEB', border: 'none', color: '#C87A7E', cursor: 'pointer', fontSize: '12px', padding: '4px 6px', borderRadius: '4px' }}>✖</button>
                             </div>
-                          ) : (
-                            <div style={{ flexShrink: 0, width: '12px', height: '12px', borderRadius: '50%', backgroundColor: fColorHex }}></div>
                           )}
-                          <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#4A4A4A', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ color: fColorHex }}>#{r.rawInput?.cardId || '未知'}</span>
-                            <span>{r.cardType || '牌卡'}</span>
-                            <span style={{ fontWeight: '900', color: r.score >= 0 ? '#8D9F8C' : '#C87A7E', fontSize: '14px', marginLeft: '2px' }}>
-                              {r.score >= 0 ? '+' : ''}{r.score}
-                            </span>
-                          </span>
-                        </div>
 
-                        {cardText && (
-                          <div style={{ fontSize: '13px', color: '#6B6B6B', lineHeight: '1.5', marginTop: '2px', background: '#FDFCFB', padding: '8px 10px', borderRadius: '6px', borderLeft: `3px solid ${fColorHex}80` }}>
-                            {cardText}
+                          <span style={{ fontSize: '11px', color: '#999999', paddingRight: '60px' }}>足跡 {i+1} | 骰: {r.diceSteps} | 前進: {r.fastForward}</span>
+                          
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {kinSealImg && <img src={kinSealImg} alt="kin" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />}
+                            <span style={{ fontSize: '14px', fontWeight: '900', color: logKinColor, letterSpacing: '0.5px' }}>KIN {r.currentKin}</span>
                           </div>
-                        )}
-                      </div>
-                    )})}
-                  </div>
-                )}
-                
-                {/* 🌟 這個就是原本消失的按鈕區塊，現在被安全釋放出來了 */}
-                {activeRound === roundNum && activeGameRoom.status !== 'ended' && !hasCalculated && (
-                  <div style={{ marginTop: '10px' }}>
-                    {!isAddingRound ? (
-                      <button onClick={() => setIsAddingRound(true)} style={{ width: '100%', background: '#F2EAEB', color: '#C87A7E', border: '1px dashed #C87A7E', padding: '8px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>+ 新增足跡</button>
-                    ) : (
-                      <div style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #DCD8D3' }}>
-                        <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#C87A7E', marginBottom: '10px', textAlign: 'center' }}>{editingId ? '✏️ 修改足跡設定' : '➕ 新增足跡設定'}</div>
-                        <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}><div style={{ flex: 1 }}><span style={labelStyle}>骰子步數</span><input type="number" placeholder="若無請留空" value={diceSteps} onChange={(e)=>setDiceSteps(e.target.value)} style={inputStyle} /></div></div>
-                        
-                        {(() => {
-                          let previewKinColorHex = '#EFEBF0'; 
-                          let previewLabelColor = '#9B8B9E'; 
-                          let previewKinTextColor = '#706373'; 
-                          let previewBorderColor = '#DCD8D3'; 
 
-                          if (previewKin) {
-                            let colorId;
-                            if (galacticPortals.includes(previewKin)) {
-                              colorId = 'green';
-                            } else {
-                              const kinRemainder = previewKin % 4;
-                              if (kinRemainder === 1) colorId = 'red';
-                              else if (kinRemainder === 2) colorId = 'white';
-                              else if (kinRemainder === 3) colorId = 'blue';
-                              else colorId = 'yellow';
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {cardImgUrl ? (
+                              <div style={{ flexShrink: 0, width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#FDFCFB', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${fColorHex}`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                                <img src={cardImgUrl} alt="card" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
+                              </div>
+                            ) : (
+                              <div style={{ flexShrink: 0, width: '12px', height: '12px', borderRadius: '50%', backgroundColor: fColorHex }}></div>
+                            )}
+                            <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#4A4A4A', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ color: fColorHex }}>#{r.rawInput?.cardId || '未知'}</span>
+                              <span>{r.cardType || '牌卡'}</span>
+                              <span style={{ fontWeight: '900', color: r.score >= 0 ? '#8D9F8C' : '#C87A7E', fontSize: '14px', marginLeft: '2px' }}>
+                                {r.score >= 0 ? '+' : ''}{r.score}
+                              </span>
+                            </span>
+                          </div>
+
+                          {cardText && (
+                            <div style={{ fontSize: '13px', color: '#6B6B6B', lineHeight: '1.5', marginTop: '2px', background: '#FDFCFB', padding: '8px 10px', borderRadius: '6px', borderLeft: `3px solid ${fColorHex}80` }}>
+                              {cardText}
+                            </div>
+                          )}
+                        </div>
+                      )})}
+                    </div>
+                  )}
+                  
+                  {activeRound === roundNum && activeGameRoom.status !== 'ended' && !hasCalculated && (
+                    <div style={{ marginTop: '10px' }}>
+                      {!isAddingRound ? (
+                        <button onClick={() => setIsAddingRound(true)} style={{ width: '100%', background: '#F2EAEB', color: '#C87A7E', border: '1px dashed #C87A7E', padding: '8px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>+ 新增足跡</button>
+                      ) : (
+                        <div style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #DCD8D3' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#C87A7E', marginBottom: '10px', textAlign: 'center' }}>{editingId ? '✏️ 修改足跡設定' : '➕ 新增足跡設定'}</div>
+                          <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}><div style={{ flex: 1 }}><span style={labelStyle}>骰子步數</span><input type="number" placeholder="若無請留空" value={diceSteps} onChange={(e)=>setDiceSteps(e.target.value)} style={inputStyle} /></div></div>
+                          
+                          {(() => {
+                            let previewKinColorHex = '#EFEBF0'; 
+                            let previewLabelColor = '#9B8B9E'; 
+                            let previewKinTextColor = '#706373'; 
+                            let previewBorderColor = '#DCD8D3'; 
+
+                            if (previewKin) {
+                              let colorId;
+                              if (galacticPortals.includes(previewKin)) {
+                                colorId = 'green';
+                              } else {
+                                const kinRemainder = previewKin % 4;
+                                if (kinRemainder === 1) colorId = 'red';
+                                else if (kinRemainder === 2) colorId = 'white';
+                                else if (kinRemainder === 3) colorId = 'blue';
+                                else colorId = 'yellow';
+                              }
+
+                              previewKinColorHex = lightMorandiTzolkinColors[colorId]; 
+                              previewLabelColor = darkerMorandiColors[colorId]; 
+                              previewKinTextColor = darkerMorandiColors[colorId]; 
+                              previewBorderColor = morandiTzolkinColors[colorId]; 
                             }
 
-                            previewKinColorHex = lightMorandiTzolkinColors[colorId]; 
-                            previewLabelColor = darkerMorandiColors[colorId]; 
-                            previewKinTextColor = darkerMorandiColors[colorId]; 
-                            previewBorderColor = morandiTzolkinColors[colorId]; 
-                          }
+                            return (
+                              <div style={{ background: previewKinColorHex, padding: '8px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '12px', border: `1px solid ${previewBorderColor}` }}>
+                                <span style={{ fontSize: '12px', color: previewLabelColor, fontWeight: 'bold' }}>當前印記預覽：</span>
+                                {previewKin ? ( 
+                                  <span style={{ display: 'flex', alignItems: 'center', fontSize: '14px', color: previewKinTextColor, fontWeight: '900', gap: '6px' }}>
+                                    {seals[previewKin % 20]?.img && <img src={seals[previewKin % 20].img} alt="kin" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />}
+                                    KIN {previewKin}
+                                  </span> 
+                                ) : ( <span style={{ fontSize: '12px', color: '#C87A7E' }}>⚠️ 請先填寫 ROUND {activeRound} 起始 KIN</span> )}
+                              </div>
+                            );
+                          })()}
 
-                          return (
-                            <div style={{ background: previewKinColorHex, padding: '8px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '12px', border: `1px solid ${previewBorderColor}` }}>
-                              <span style={{ fontSize: '12px', color: previewLabelColor, fontWeight: 'bold' }}>當前印記預覽：</span>
-                              {previewKin ? ( 
-                                <span style={{ display: 'flex', alignItems: 'center', fontSize: '14px', color: previewKinTextColor, fontWeight: '900', gap: '6px' }}>
-                                  {seals[previewKin % 20]?.img && <img src={seals[previewKin % 20].img} alt="kin" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />}
-                                  KIN {previewKin}
-                                </span> 
-                              ) : ( <span style={{ fontSize: '12px', color: '#C87A7E' }}>⚠️ 請先填寫 ROUND {activeRound} 起始 KIN</span> )}
-                            </div>
-                          );
-                        })()}
-
-                        <div style={{ marginBottom: '10px' }}><span style={labelStyle}>卡牌編號</span><input type="text" placeholder="例如：515" value={cardId} onChange={(e)=>setCardId(e.target.value)} style={inputStyle} /></div>
-                        {cardId && (() => {
-                          const card = cardsData.find(c => c[0] === cardId);
-                          if (!card) return <div style={{ fontSize: '12px', color: '#C87A7E', marginBottom: '10px' }}>找不到此卡牌編號，請重新確認。</div>;
-                          const cText = card[1], cImg = card[2], cColorStr = card[3], cType = card[4];
-                          const borderHex = colorStyles[cColorStr] || '#DCD8D3';
-                          return (
-                            <div style={{ background: '#FDFCFB', padding: '12px', borderRadius: '8px', border: `2px solid ${borderHex}`, marginBottom: '15px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>{getCardIcon(cImg) && <img src={getCardIcon(cImg)} alt="icon" style={{ height: '30px', objectFit: 'contain' }} />}<div><span style={{ fontSize: '11px', background: borderHex, color: '#fff', padding: '2px 6px', borderRadius: '4px', marginRight: '6px' }}>{cColorStr}色</span><span style={{ fontSize: '12px', fontWeight: 'bold', color: '#4A4A4A' }}>{cType}</span></div></div>
-                              <div style={{ fontSize: '13px', color: '#6B6B6B', marginBottom: '15px', lineHeight: '1.4', textAlign: 'justify' }}>{cText}</div>
-                              {['發揮力量', '知與行', '靈魂拷問'].includes(cType) && (<div style={{ marginBottom: '10px' }}><span style={labelStyle}>🎯 卡牌得分骰子 (請輸入數字)</span><input type="number" min="1" max="6" value={scoreDice} onChange={e=>setScoreDice(e.target.value)} style={inputStyle} /></div>)}
-                              {['奇蹟顯化', '成就顯化', '靈魂拷問'].includes(cType) && (<div style={{ marginBottom: '10px', background: '#EBEFF2', padding: '8px', borderRadius: '6px' }}><span style={labelStyle}>🚀 快速前進骰子 (請輸入數字)</span><input type="number" min="1" max="6" value={ffDice} onChange={e=>setFfDice(e.target.value)} style={{...inputStyle, background: '#FFFFFF'}} /><div style={{ fontSize: '11px', color: '#829BAC', marginTop: '6px', fontWeight: 'bold' }}>⚡ 將額外快進 { (parseInt(ffDice)||0) * (cType==='奇蹟顯化'?10 : cType==='成就顯化'?5 : 1) } 步</div></div>)}
-                              {cType === '宇宙訊息' && (<div style={{ marginBottom: '10px' }}><span style={labelStyle}>🌟 宇宙訊息選擇</span><select value={msgChoice} onChange={e=>setMsgChoice(e.target.value)} style={inputStyle}><option value="solo">獨享 (+5分)</option><option value="benefactor">貴人 (+10分)</option><option value="gifted">受贈 (+5分)</option></select></div>)}
-                              {['人生練習題'].includes(cType) && <div style={{ fontSize: '12px', color: '#C87A7E', fontWeight: 'bold' }}>⚠️ 系統將自動扣 5 分</div>}{['天賦喚醒力', '成就顯化'].includes(cType) && <div style={{ fontSize: '12px', color: '#8D9F8C', fontWeight: 'bold' }}>✨ 系統將自動加 5 分</div>}{['奇蹟顯化'].includes(cType) && <div style={{ fontSize: '12px', color: '#8D9F8C', fontWeight: 'bold' }}>🎉 系統將自動加 10 分</div>}
-                            </div>
-                          );
-                        })()}
-                        <div style={{ display: 'flex', gap: '10px' }}><button onClick={() => { setIsAddingRound(false); setEditingId(null); }} style={{ flex: 1, padding: '10px', background: '#F5F3F0', color: '#829BAC', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>取消</button><button onClick={handleAddFootprint} style={{ flex: 2, padding: '10px', background: '#829BAC', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 10px rgba(130, 155, 172, 0.3)' }}>確認送出</button></div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {activeRound === roundNum && activeRound < 3 && !isAddingRound && activeGameRoom.status !== 'ended' && !hasCalculated && (
-                  <button onClick={() => setActiveRound(activeRound + 1)} style={{ width: '100%', marginTop: '15px', padding: '10px', background: '#EBEFF2', color: '#829BAC', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>進入下一回合 (ROUND {activeRound + 1}) ⬇️</button>
-                )}
-              </div>
-            );
-          })}
+                          <div style={{ marginBottom: '10px' }}><span style={labelStyle}>卡牌編號</span><input type="text" placeholder="例如：515" value={cardId} onChange={(e)=>setCardId(e.target.value)} style={inputStyle} /></div>
+                          {cardId && (() => {
+                            const card = cardsData.find(c => c[0] === cardId);
+                            if (!card) return <div style={{ fontSize: '12px', color: '#C87A7E', marginBottom: '10px' }}>找不到此卡牌編號，請重新確認。</div>;
+                            const cText = card[1], cImg = card[2], cColorStr = card[3], cType = card[4];
+                            const borderHex = colorStyles[cColorStr] || '#DCD8D3';
+                            return (
+                              <div style={{ background: '#FDFCFB', padding: '12px', borderRadius: '8px', border: `2px solid ${borderHex}`, marginBottom: '15px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>{getCardIcon(cImg) && <img src={getCardIcon(cImg)} alt="icon" style={{ height: '30px', objectFit: 'contain' }} />}<div><span style={{ fontSize: '11px', background: borderHex, color: '#fff', padding: '2px 6px', borderRadius: '4px', marginRight: '6px' }}>{cColorStr}色</span><span style={{ fontSize: '12px', fontWeight: 'bold', color: '#4A4A4A' }}>{cType}</span></div></div>
+                                <div style={{ fontSize: '13px', color: '#6B6B6B', marginBottom: '15px', lineHeight: '1.4', textAlign: 'justify' }}>{cText}</div>
+                                {['發揮力量', '知與行', '靈魂拷問'].includes(cType) && (<div style={{ marginBottom: '10px' }}><span style={labelStyle}>🎯 卡牌得分骰子 (請輸入數字)</span><input type="number" min="1" max="6" value={scoreDice} onChange={e=>setScoreDice(e.target.value)} style={inputStyle} /></div>)}
+                                {['奇蹟顯化', '成就顯化', '靈魂拷問'].includes(cType) && (<div style={{ marginBottom: '10px', background: '#EBEFF2', padding: '8px', borderRadius: '6px' }}><span style={labelStyle}>🚀 快速前進骰子 (請輸入數字)</span><input type="number" min="1" max="6" value={ffDice} onChange={e=>setFfDice(e.target.value)} style={{...inputStyle, background: '#FFFFFF'}} /><div style={{ fontSize: '11px', color: '#829BAC', marginTop: '6px', fontWeight: 'bold' }}>⚡ 將額外快進 { (parseInt(ffDice)||0) * (cType==='奇蹟顯化'?10 : cType==='成就顯化'?5 : 1) } 步</div></div>)}
+                                {cType === '宇宙訊息' && (<div style={{ marginBottom: '10px' }}><span style={labelStyle}>🌟 宇宙訊息選擇</span><select value={msgChoice} onChange={e=>setMsgChoice(e.target.value)} style={inputStyle}><option value="solo">獨享 (+5分)</option><option value="benefactor">貴人 (+10分)</option><option value="gifted">受贈 (+5分)</option></select></div>)}
+                                {['人生練習題'].includes(cType) && <div style={{ fontSize: '12px', color: '#C87A7E', fontWeight: 'bold' }}>⚠️ 系統將自動扣 5 分</div>}{['天賦喚醒力', '成就顯化'].includes(cType) && <div style={{ fontSize: '12px', color: '#8D9F8C', fontWeight: 'bold' }}>✨ 系統將自動加 5 分</div>}{['奇蹟顯化'].includes(cType) && <div style={{ fontSize: '12px', color: '#8D9F8C', fontWeight: 'bold' }}>🎉 系統將自動加 10 分</div>}
+                              </div>
+                            );
+                          })()}
+                          <div style={{ display: 'flex', gap: '10px' }}><button onClick={() => { setIsAddingRound(false); setEditingId(null); }} style={{ flex: 1, padding: '10px', background: '#F5F3F0', color: '#829BAC', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>取消</button><button onClick={handleAddFootprint} style={{ flex: 2, padding: '10px', background: '#829BAC', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 10px rgba(130, 155, 172, 0.3)' }}>確認送出</button></div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {activeRound === roundNum && activeRound < 3 && !isAddingRound && activeGameRoom.status !== 'ended' && !hasCalculated && (
+                    <button onClick={() => setActiveRound(activeRound + 1)} style={{ width: '100%', marginTop: '15px', padding: '10px', background: '#EBEFF2', color: '#829BAC', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>進入下一回合 (ROUND {activeRound + 1}) ⬇️</button>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* 🌟 核心：意識頻率結算區塊 */}

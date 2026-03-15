@@ -5,13 +5,49 @@ import { doc, updateDoc, setDoc, getDoc, collection, query, onSnapshot } from 'f
 import { seals, toneNames } from './mayaEngine'; 
 import { cardsData } from './cardsData'; 
 
-const cardColors = [
-  { id: 'red', name: '🔴 未知探索', hex: '#ef4444' },
-  { id: 'white', name: '⚪ 內觀梳理', hex: '#d1d5db' },
-  { id: 'blue', name: '🔵 蛻變進擊', hex: '#3b82f6' },
-  { id: 'yellow', name: '🟡 實踐成就', hex: '#eab308' },
-  { id: 'green', name: '🟢 顯化矩陣', hex: '#22c55e' }
+// 🌌 52 個銀河啟動之門 (綠網格) KIN 值
+const galacticPortals = [
+  1, 20, 22, 39, 43, 50, 51, 58, 64, 69, 72, 77, 85, 88, 93, 96,
+  106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
+  146, 147, 148, 149, 150, 151, 152, 153, 154, 155,
+  165, 168, 173, 176, 184, 189, 192, 197, 203, 210, 211, 218, 222, 239, 241, 260
 ];
+
+// 🎨 全新高質感：莫蘭迪色系 (卡牌相關使用)
+const cardColors = [
+  { id: 'red', name: '未知探索', hex: '#C87A7E' },
+  { id: 'white', name: '內觀梳理', hex: '#C4C1BC' },
+  { id: 'blue', name: '蛻變進擊', hex: '#829BAC' },
+  { id: 'yellow', name: '實踐成就', hex: '#D1B475' },
+  { id: 'green', name: '顯化矩陣', hex: '#8D9F8C' }
+];
+
+// 🎨 莫蘭迪卓爾金曆色碼 (瑪雅 KIN 專用)
+const morandiTzolkinColors = {
+  red: '#C87A7E',   
+  white: '#C4C1BC', 
+  blue: '#829BAC',  
+  yellow: '#D1B475',
+  green: '#8D9F8C'  // 綠色網格專屬
+};
+
+// 🎨 刷淡的莫蘭迪底色 (預覽區塊底色專用)
+const lightMorandiTzolkinColors = {
+  red: '#F9F1F2',   
+  white: '#F7F6F5', 
+  blue: '#F0F4F7',  
+  yellow: '#FBF8F1',
+  green: '#F2F5F2'  // 刷淡的鼠尾草綠
+};
+
+// 🎨 較深的莫蘭迪色 (預覽區塊文字專用，增加對比度)
+const darkerMorandiColors = {
+  red: '#A85A5E',
+  white: '#8A8782', 
+  blue: '#5A7588',
+  yellow: '#A68A4A',
+  green: '#627361'  // 較深的鼠尾草綠
+};
 
 const getCardIcon = (imgStr) => {
   if (!imgStr) return '';
@@ -40,7 +76,7 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
   const isHost = activeGameRoom.hostId === user.uid;
   const isHostPlaying = activeGameRoom.isHostPlaying;
   const amIPlaying = !isHost || isHostPlaying; 
-  
+
   const myData = activeGameRoom.players.find(p => p.uid === user.uid) || {};
 
   const [activeTab, setActiveTab] = useState(amIPlaying ? 'my_game' : 'player_list');
@@ -62,7 +98,7 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
     r3: { startAge: '', startKin: '', yearAge: '', yearKin: '' },
     end: { age: '', kin: '' }
   });
-  
+
   const handleSetupChange = (round, field, value) => {
     setSetup(prev => ({ ...prev, [round]: { ...prev[round], [field]: value } }));
   };
@@ -111,22 +147,21 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
     catch (e) { alert("結束遊戲失敗！"); }
   };
 
-  // 🌟 核心 KIN 運算引擎升級：完美計算每次的 Base = 上一步KIN + 上一步快進
   const calculatedRounds = [];
   const colorScores = { red: 0, white: 0, blue: 0, yellow: 0, green: 0 };
 
   [1, 2, 3].forEach(rNum => {
     const rFootprints = rounds.filter(f => f.roundNum === rNum);
     const startKin = parseInt(setup[`r${rNum}`].startKin, 10) || 0;
-    
+
     rFootprints.forEach((f, i) => {
       const prev = i > 0 ? calculatedRounds[calculatedRounds.length - 1] : null;
       const base = prev ? prev.currentKin + (prev.fastForward || 0) : startKin;
       const dSteps = parseInt(f.diceSteps) || 0;
-      
+
       let k = (base + dSteps) % 260;
       const calcKin = k === 0 ? 260 : k;
-      
+
       calculatedRounds.push({ ...f, currentKin: calcKin });
       if (colorScores[f.color] !== undefined) colorScores[f.color] += (f.score || 0);
     });
@@ -142,14 +177,13 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
   const totalFrequency = finalScores.red + finalScores.white + finalScores.blue + finalScores.yellow + finalScores.green;
   const currentStage = frequencyStages.find(s => totalFrequency <= s.max) || frequencyStages[4];
 
-  // 🌟 預覽 KIN 引擎升級：即使沒輸入骰子(0步)，也會先加上一步的「快進」！
   let previewKin = null;
   if (setup[`r${activeRound}`]?.startKin) {
     const startKin = parseInt(setup[`r${activeRound}`].startKin, 10);
     const dSteps = parseInt(diceSteps) || 0;
     const rFootprints = calculatedRounds.filter(r => r.roundNum === activeRound);
     let prevFootprint = editingId ? rFootprints[rFootprints.findIndex(f => f.id === editingId) - 1] : rFootprints[rFootprints.length - 1];
-    
+
     const base = prevFootprint ? prevFootprint.currentKin + (prevFootprint.fastForward || 0) : startKin;
     let k = (base + dSteps) % 260;
     previewKin = k === 0 ? 260 : k;
@@ -160,13 +194,13 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
     try {
       const recordRef = doc(db, 'game_rooms', activeGameRoom.id, 'player_records', user.uid);
       const currentKinValue = calculatedRounds.length > 0 ? calculatedRounds[calculatedRounds.length - 1].currentKin : (setup[`r${activeRound}`]?.startKin || '尚未設定');
-      
+
       await setDoc(recordRef, {
         setup, rounds, 
         summary: { activeRound, currentKin: currentKinValue, totalScore: totalFrequency, hasCalculated, reflection, nextAction }, 
         updatedAt: Date.now()
       }, { merge: true });
-      
+
       if (isManualAction) alert("💾 紀錄與反思已成功封存同步至雲端！\n您可以隨時在「玩家列表」中檢視。");
     } catch (e) {
       if (isManualAction) alert("存檔失敗：" + e.message);
@@ -194,15 +228,15 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
     if (!card) return alert('請輸入正確的卡牌編號！');
 
     const cText = card[1], cColorStr = card[3], cType = card[4];
-    let score = 0, fastForward = 0, detail = `卡牌 ${cardId}`; 
+    let score = 0, fastForward = 0, detail = ''; 
 
-    if (cType === '奇蹟顯化') { score = 10; fastForward = (parseInt(ffDice) || 0) * 10; detail += ` | 快進 ${fastForward}`; } 
-    else if (cType === '成就顯化') { score = 5; fastForward = (parseInt(ffDice) || 0) * 5; detail += ` | 快進 ${fastForward}`; } 
-    else if (cType === '靈魂拷問') { score = parseInt(scoreDice) || 0; fastForward = (parseInt(ffDice) || 0) * 1; detail += ` | 骰分 ${score} | 快進 ${fastForward}`; } 
-    else if (cType === '宇宙訊息') { score = msgChoice === 'benefactor' ? 10 : 5; detail += ` | ${msgChoice === 'benefactor' ? '貴人(+10)' : msgChoice === 'solo' ? '獨享(+5)' : '受贈(+5)'}`; } 
+    if (cType === '奇蹟顯化') { score = 10; fastForward = (parseInt(ffDice) || 0) * 10; } 
+    else if (cType === '成就顯化') { score = 5; fastForward = (parseInt(ffDice) || 0) * 5; } 
+    else if (cType === '靈魂拷問') { score = parseInt(scoreDice) || 0; fastForward = (parseInt(ffDice) || 0) * 1; } 
+    else if (cType === '宇宙訊息') { score = msgChoice === 'benefactor' ? 10 : 5; } 
     else if (cType === '人生練習題') { score = -5; } 
     else if (cType === '天賦喚醒力') { score = 5; } 
-    else if (cType === '發揮力量' || cType === '知與行') { score = parseInt(scoreDice) || 0; detail += ` | 骰分 ${score}`; }
+    else if (cType === '發揮力量' || cType === '知與行') { score = parseInt(scoreDice) || 0; }
 
     const colorMap = { '紅': 'red', '白': 'white', '藍': 'blue', '黃': 'yellow', '綠': 'green' };
     const colorId = colorMap[cColorStr] || 'red';
@@ -284,22 +318,65 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
               <div key={`footprint-r${roundNum}`} style={{ marginBottom: '20px', background: '#fafafa', padding: '10px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                 <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#3949ab', marginBottom: '10px' }}>ROUND {roundNum}</div>
                 {roundFootprints.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
-                    {roundFootprints.map((r, i) => (
-                      <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '10px', borderRadius: '8px', borderLeft: `4px solid ${cardColors.find(c=>c.id===r.color)?.hex}`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontSize: '11px', color: '#888' }}>足跡 {i+1} | 骰: {r.diceSteps} | 前進: {r.fastForward}</span>
-                          <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#333' }}>{r.colorName?.split(' ')[0]} {r.cardType || '牌卡'} <span style={{color: '#d81b60'}}>當前 KIN {r.currentKin}</span></span>
-                          <span style={{ fontSize: '11px', color: '#64748b' }}>{r.detail}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '10px' }}>
+                    {roundFootprints.map((r, i) => {
+                      const fColorHex = cardColors.find(c=>c.id===r.color)?.hex || '#ccc';
+                      const kinSealImg = seals[r.currentKin % 20]?.img;
+                      const cardInfo = cardsData.find(c => c[0] === (r.rawInput?.cardId || ''));
+                      const cardImgUrl = getCardIcon(cardInfo ? cardInfo[2] : '');
+                      const cardText = cardInfo ? cardInfo[1] : '';
+
+                      // 🌟 KIN 文字顏色判定 (支援 52綠網格 覆蓋)
+                      let logColorId;
+                      if (galacticPortals.includes(r.currentKin)) {
+                        logColorId = 'green';
+                      } else {
+                        const logKinRemainder = r.currentKin % 4;
+                        logColorId = logKinRemainder === 1 ? 'red' : logKinRemainder === 2 ? 'white' : logKinRemainder === 3 ? 'blue' : 'yellow';
+                      }
+                      const logKinColor = darkerMorandiColors[logColorId];
+
+                      return (
+                      <div key={r.id} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '8px', background: '#fff', padding: '12px', borderRadius: '8px', borderLeft: `4px solid ${fColorHex}`, boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
+
+                        {activeGameRoom.status !== 'ended' && (
+                          <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '6px' }}>
+                            <button onClick={() => handleEditFootprint(r)} style={{ background: '#f1f5f9', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '12px', padding: '4px 6px', borderRadius: '4px' }}>✏️</button>
+                            <button onClick={() => removeFootprint(r.id)} style={{ background: '#fee2e2', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '12px', padding: '4px 6px', borderRadius: '4px' }}>✖</button>
+                          </div>
+                        )}
+
+                        <span style={{ fontSize: '11px', color: '#888', paddingRight: '60px' }}>足跡 {i+1} | 骰: {r.diceSteps} | 前進: {r.fastForward}</span>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {kinSealImg && <img src={kinSealImg} alt="kin" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />}
+                          <span style={{ fontSize: '14px', fontWeight: '900', color: logKinColor, letterSpacing: '0.5px' }}>KIN {r.currentKin}</span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <span style={{ fontWeight: 'bold', color: r.score >= 0 ? '#22c55e' : '#ef4444', marginRight: '4px' }}>{r.score >= 0 ? '+' : ''}{r.score}分</span>
-                          {activeGameRoom.status !== 'ended' && (
-                            <><button onClick={() => handleEditFootprint(r)} style={{ background: '#f1f5f9', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '14px', padding: '6px', borderRadius: '6px' }}>✏️</button><button onClick={() => removeFootprint(r.id)} style={{ background: '#fee2e2', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px', padding: '6px', borderRadius: '6px' }}>✖</button></>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {cardImgUrl ? (
+                            <div style={{ flexShrink: 0, width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${fColorHex}`, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                              <img src={cardImgUrl} alt="card" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
+                            </div>
+                          ) : (
+                            <div style={{ flexShrink: 0, width: '12px', height: '12px', borderRadius: '50%', backgroundColor: fColorHex }}></div>
                           )}
+                          <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#333', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ color: fColorHex }}>#{r.rawInput?.cardId || '未知'}</span>
+                            <span>{r.cardType || '牌卡'}</span>
+                            <span style={{ fontWeight: '900', color: r.score >= 0 ? '#8D9F8C' : '#C87A7E', fontSize: '14px', marginLeft: '2px' }}>
+                              {r.score >= 0 ? '+' : ''}{r.score}
+                            </span>
+                          </span>
                         </div>
+
+                        {cardText && (
+                          <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5', marginTop: '2px', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', borderLeft: `3px solid ${fColorHex}80` }}>
+                            {cardText}
+                          </div>
+                        )}
                       </div>
-                    ))}
+                    )})}
                   </div>
                 )}
                 {activeRound === roundNum && activeGameRoom.status !== 'ended' && !hasCalculated && (
@@ -310,13 +387,51 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
                       <div style={{ backgroundColor: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid #f8bbd0' }}>
                         <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#d81b60', marginBottom: '10px', textAlign: 'center' }}>{editingId ? '✏️ 修改足跡設定' : '➕ 新增足跡設定'}</div>
                         <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}><div style={{ flex: 1 }}><span style={labelStyle}>骰子步數</span><input type="number" placeholder="若無請留空" value={diceSteps} onChange={(e)=>setDiceSteps(e.target.value)} style={inputStyle} /></div></div>
-                        <div style={{ background: '#f3e5f5', padding: '8px', borderRadius: '6px', textAlign: 'center', marginBottom: '12px', border: '1px solid #ce93d8' }}><span style={{ fontSize: '12px', color: '#8e24aa', fontWeight: 'bold' }}>此步當前印記預覽：</span>{previewKin ? ( <span style={{ fontSize: '14px', color: '#4a148c', fontWeight: '900', marginLeft: '5px' }}>KIN {previewKin}</span> ) : ( <span style={{ fontSize: '12px', color: '#ef4444', marginLeft: '5px' }}>⚠️ 請先填寫 ROUND {activeRound} 起始 KIN</span> )}</div>
+
+                        {/* 🌟 動態 KIN 底色預覽 (支援綠色 GAP 網格) */}
+                        {(() => {
+                          let previewKinColorHex = '#f3e5f5'; 
+                          let previewLabelColor = '#8e24aa'; 
+                          let previewKinTextColor = '#4a148c'; 
+                          let previewBorderColor = '#ce93d8'; 
+
+                          if (previewKin) {
+                            let colorId;
+                            if (galacticPortals.includes(previewKin)) {
+                              colorId = 'green';
+                            } else {
+                              const kinRemainder = previewKin % 4;
+                              if (kinRemainder === 1) colorId = 'red';
+                              else if (kinRemainder === 2) colorId = 'white';
+                              else if (kinRemainder === 3) colorId = 'blue';
+                              else colorId = 'yellow';
+                            }
+
+                            previewKinColorHex = lightMorandiTzolkinColors[colorId]; 
+                            previewLabelColor = darkerMorandiColors[colorId]; 
+                            previewKinTextColor = darkerMorandiColors[colorId]; 
+                            previewBorderColor = morandiTzolkinColors[colorId]; 
+                          }
+
+                          return (
+                            <div style={{ background: previewKinColorHex, padding: '8px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '12px', border: `1px solid ${previewBorderColor}` }}>
+                              <span style={{ fontSize: '12px', color: previewLabelColor, fontWeight: 'bold' }}>當前印記預覽：</span>
+                              {previewKin ? ( 
+                                <span style={{ display: 'flex', alignItems: 'center', fontSize: '14px', color: previewKinTextColor, fontWeight: '900', gap: '6px' }}>
+                                  {seals[previewKin % 20]?.img && <img src={seals[previewKin % 20].img} alt="kin" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />}
+                                  KIN {previewKin}
+                                </span> 
+                              ) : ( <span style={{ fontSize: '12px', color: '#ef4444' }}>⚠️ 請先填寫 ROUND {activeRound} 起始 KIN</span> )}
+                            </div>
+                          );
+                        })()}
+
                         <div style={{ marginBottom: '10px' }}><span style={labelStyle}>卡牌編號</span><input type="text" placeholder="例如：515" value={cardId} onChange={(e)=>setCardId(e.target.value)} style={inputStyle} /></div>
                         {cardId && (() => {
                           const card = cardsData.find(c => c[0] === cardId);
                           if (!card) return <div style={{ fontSize: '12px', color: '#ef4444', marginBottom: '10px' }}>找不到此卡牌編號，請重新確認。</div>;
                           const cText = card[1], cImg = card[2], cColorStr = card[3], cType = card[4];
-                          const colorMap = { '紅': '#ef4444', '白': '#94a3b8', '藍': '#3b82f6', '黃': '#eab308', '綠': '#22c55e' };
+                          const colorMap = { '紅': '#C87A7E', '白': '#C4C1BC', '藍': '#829BAC', '黃': '#D1B475', '綠': '#8D9F8C' };
                           const hex = colorMap[cColorStr] || '#ccc';
                           return (
                             <div style={{ background: '#fafafa', padding: '12px', borderRadius: '8px', border: `2px solid ${hex}`, marginBottom: '15px' }}>
@@ -325,7 +440,7 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
                               {['發揮力量', '知與行', '靈魂拷問'].includes(cType) && (<div style={{ marginBottom: '10px' }}><span style={labelStyle}>🎯 卡牌得分骰子 (請輸入數字)</span><input type="number" min="1" max="6" value={scoreDice} onChange={e=>setScoreDice(e.target.value)} style={inputStyle} /></div>)}
                               {['奇蹟顯化', '成就顯化', '靈魂拷問'].includes(cType) && (<div style={{ marginBottom: '10px', background: '#e0f2fe', padding: '8px', borderRadius: '6px' }}><span style={labelStyle}>🚀 快速前進骰子 (請輸入數字)</span><input type="number" min="1" max="6" value={ffDice} onChange={e=>setFfDice(e.target.value)} style={{...inputStyle, background: '#fff'}} /><div style={{ fontSize: '11px', color: '#0284c7', marginTop: '6px', fontWeight: 'bold' }}>⚡ 將額外快進 { (parseInt(ffDice)||0) * (cType==='奇蹟顯化'?10 : cType==='成就顯化'?5 : 1) } 步</div></div>)}
                               {cType === '宇宙訊息' && (<div style={{ marginBottom: '10px' }}><span style={labelStyle}>🌟 宇宙訊息選擇</span><select value={msgChoice} onChange={e=>setMsgChoice(e.target.value)} style={inputStyle}><option value="solo">獨享 (+5分)</option><option value="benefactor">貴人 (+10分)</option><option value="gifted">受贈 (+5分)</option></select></div>)}
-                              {['人生練習題'].includes(cType) && <div style={{ fontSize: '12px', color: '#ef4444', fontWeight: 'bold' }}>⚠️ 系統將自動扣 5 分</div>}{['天賦喚醒力', '成就顯化'].includes(cType) && <div style={{ fontSize: '12px', color: '#22c55e', fontWeight: 'bold' }}>✨ 系統將自動加 5 分</div>}{['奇蹟顯化'].includes(cType) && <div style={{ fontSize: '12px', color: '#22c55e', fontWeight: 'bold' }}>🎉 系統將自動加 10 分</div>}
+                              {['人生練習題'].includes(cType) && <div style={{ fontSize: '12px', color: '#C87A7E', fontWeight: 'bold' }}>⚠️ 系統將自動扣 5 分</div>}{['天賦喚醒力', '成就顯化'].includes(cType) && <div style={{ fontSize: '12px', color: '#8D9F8C', fontWeight: 'bold' }}>✨ 系統將自動加 5 分</div>}{['奇蹟顯化'].includes(cType) && <div style={{ fontSize: '12px', color: '#8D9F8C', fontWeight: 'bold' }}>🎉 系統將自動加 10 分</div>}
                             </div>
                           );
                         })()}
@@ -350,12 +465,15 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
         ) : (
           <div style={{...blockStyle, backgroundColor: '#f3e5f5', border: '1px solid #ce93d8', animation: 'fadeIn 0.5s' }}>
             <h3 style={{ margin: '0 0 15px 0', fontSize: '16px', color: '#6a1b9a', textAlign: 'center' }}>📊 意識頻率結算報告</h3>
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '5px', textAlign: 'center', marginBottom: '15px' }}>
-               {[ { id: 'red', label: '🔴 紅', hex: '#ef4444' }, { id: 'white', label: '⚪ 白', hex: '#94a3b8' }, { id: 'blue', label: '🔵 藍', hex: '#3b82f6' }, { id: 'yellow', label: '🟡 黃', hex: '#eab308' }, { id: 'green', label: '🟢 綠', hex: '#22c55e' } ].map(c => (
+               {[ { id: 'red', label: '紅', hex: '#C87A7E' }, { id: 'white', label: '白', hex: '#C4C1BC' }, { id: 'blue', label: '藍', hex: '#829BAC' }, { id: 'yellow', label: '黃', hex: '#D1B475' }, { id: 'green', label: '綠', hex: '#8D9F8C' } ].map(c => (
                  <div key={c.id} style={{ background: '#fff', padding: '8px 0', borderRadius: '8px', border: `1px solid ${c.hex}` }}>
-                   <div style={{ fontSize: '11px', color: c.hex, fontWeight: 'bold' }}>{c.label}</div>
-                   <div style={{ fontSize: '18px', fontWeight: '900', color: c.hex }}>{colorScores[c.id]} 分</div>
+                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: c.hex }}></div>
+                     <div style={{ fontSize: '11px', color: c.hex, fontWeight: 'bold' }}>{c.label}</div>
+                   </div>
+                   <div style={{ fontSize: '18px', fontWeight: '900', color: c.hex, marginTop: '4px' }}>{colorScores[c.id]} 分</div>
                    <div style={{ fontSize: '10px', color: '#888', marginTop: '2px' }}>頻率 {finalScores[c.id]}</div>
                  </div>
                ))}
@@ -370,15 +488,15 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
                  <div style={{ width: '100%', background: '#ccc', textAlign: 'center', color: '#fff', fontSize: '10px', lineHeight: '24px' }}>無頻率產生</div>
                ) : (
                  <>
-                   <div style={{ width: `${(finalScores.red / totalFrequency) * 100}%`, backgroundColor: '#ef4444', transition: 'width 1s' }}></div>
-                   <div style={{ width: `${(finalScores.white / totalFrequency) * 100}%`, backgroundColor: '#94a3b8', transition: 'width 1s' }}></div>
-                   <div style={{ width: `${(finalScores.blue / totalFrequency) * 100}%`, backgroundColor: '#3b82f6', transition: 'width 1s' }}></div>
-                   <div style={{ width: `${(finalScores.yellow / totalFrequency) * 100}%`, backgroundColor: '#eab308', transition: 'width 1s' }}></div>
-                   <div style={{ width: `${(finalScores.green / totalFrequency) * 100}%`, backgroundColor: '#22c55e', transition: 'width 1s' }}></div>
+                   <div style={{ width: `${(finalScores.red / totalFrequency) * 100}%`, backgroundColor: '#C87A7E', transition: 'width 1s' }}></div>
+                   <div style={{ width: `${(finalScores.white / totalFrequency) * 100}%`, backgroundColor: '#C4C1BC', transition: 'width 1s' }}></div>
+                   <div style={{ width: `${(finalScores.blue / totalFrequency) * 100}%`, backgroundColor: '#829BAC', transition: 'width 1s' }}></div>
+                   <div style={{ width: `${(finalScores.yellow / totalFrequency) * 100}%`, backgroundColor: '#D1B475', transition: 'width 1s' }}></div>
+                   <div style={{ width: `${(finalScores.green / totalFrequency) * 100}%`, backgroundColor: '#8D9F8C', transition: 'width 1s' }}></div>
                  </>
                )}
             </div>
-            
+
             <div style={{ padding: '12px', backgroundColor: '#fff', borderRadius: '10px', fontSize: '13px', color: '#333', textAlign: 'center', lineHeight: '1.5', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
               {currentStage.desc}
             </div>
@@ -386,12 +504,11 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
             <div style={{ marginTop: '20px' }}>
               <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#6a1b9a' }}>🦋 看見的重複模式或課題</label>
               <textarea rows="3" placeholder="在這次旅程中，我發現..." value={reflection} onChange={(e)=>setReflection(e.target.value)} style={{...inputStyle, resize: 'none', marginBottom: '10px'}} />
-              
+
               <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#6a1b9a' }}>🔥 下一步的突破行動宣告</label>
               <textarea rows="2" placeholder="接下來，我決定..." value={nextAction} onChange={(e)=>setNextAction(e.target.value)} style={{...inputStyle, resize: 'none'}} />
             </div>
-            
-            {/* 🌟 真正的存檔按鈕：點擊後強制執行 saveToCloud(true) */}
+
             <button onClick={() => saveToCloud(true)} style={{ width: '100%', padding: '14px', background: '#26a69a', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', marginTop: '15px', fontSize: '15px', boxShadow: '0 4px 10px rgba(38, 166, 154, 0.3)' }}>
               💾 封存戰報與反思
             </button>
@@ -427,12 +544,12 @@ function PlayerListView({ activeGameRoom }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
       <h3 style={{ color: '#1976d2', margin: '0 0 5px 0', fontSize: '16px', textAlign: 'center' }}>👥 戰況即時監控板</h3>
       <p style={{ fontSize: '12px', color: '#888', textAlign: 'center', marginTop: '-5px', marginBottom: '10px' }}>點擊玩家卡片可查看詳細紀錄</p>
-      
+
       {activeGameRoom.players.map(p => {
         const rec = allRecords[p.uid];
         const summary = rec?.summary || { activeRound: 1, currentKin: '未開始', totalScore: 0 };
         const isHostTag = p.isHost ? <span style={{ fontSize: '10px', background: '#ffc107', padding: '2px 6px', borderRadius: '10px', marginLeft: '5px', color: '#333' }}>桌長</span> : null;
-        const statusBadge = summary.hasCalculated ? <span style={{ fontSize: '10px', background: '#ce93d8', color: '#fff', padding: '2px 6px', borderRadius: '10px' }}>已結算</span> : <span style={{ fontSize: '10px', background: '#22c55e', color: '#fff', padding: '2px 6px', borderRadius: '10px' }}>進行中</span>;
+        const statusBadge = summary.hasCalculated ? <span style={{ fontSize: '10px', background: '#ce93d8', color: '#fff', padding: '2px 6px', borderRadius: '10px' }}>已結算</span> : <span style={{ fontSize: '10px', background: '#8D9F8C', color: '#fff', padding: '2px 6px', borderRadius: '10px' }}>進行中</span>;
 
         return (
           <div key={p.uid} onClick={() => setViewingPlayerId(p.uid)} style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '15px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', borderLeft: '4px solid #3b82f6', cursor: 'pointer', transition: 'transform 0.1s' }}>
@@ -443,7 +560,7 @@ function PlayerListView({ activeGameRoom }) {
             <div style={{ display: 'flex', background: '#f8f9fa', borderRadius: '8px', padding: '10px', gap: '10px', textAlign: 'center' }}>
               <div style={{ flex: 1 }}><div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>當前 KIN</div><div style={{ fontSize: '14px', fontWeight: 'bold', color: '#d81b60' }}>{summary.currentKin}</div></div>
               <div style={{ width: '1px', background: '#e2e8f0' }}></div>
-              <div style={{ flex: 1 }}><div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>{summary.hasCalculated ? '總頻率' : '獲得總分'}</div><div style={{ fontSize: '14px', fontWeight: 'bold', color: summary.hasCalculated ? '#6a1b9a' : '#22c55e' }}>{summary.totalScore}</div></div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>{summary.hasCalculated ? '總頻率' : '獲得總分'}</div><div style={{ fontSize: '14px', fontWeight: 'bold', color: summary.hasCalculated ? '#6a1b9a' : '#8D9F8C' }}>{summary.totalScore}</div></div>
             </div>
           </div>
         );
@@ -456,7 +573,7 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
   const setup = record?.setup || { r1: {}, r2: {}, r3: {}, end: {} };
   const rounds = record?.rounds || [];
   const summary = record?.summary || {};
-  
+
   let fullKinName = `KIN ${player.kin || '未知'}`;
   if (player.kin) {
     const kNum = parseInt(player.kin, 10);
@@ -469,7 +586,7 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
 
   const calculatedRounds = [];
   const colorScores = { red: 0, white: 0, blue: 0, yellow: 0, green: 0 };
-  
+
   [1, 2, 3].forEach(rNum => {
     const rFootprints = rounds.filter(f => f.roundNum === rNum);
     const startKin = parseInt(setup[`r${rNum}`]?.startKin, 10) || 0;
@@ -509,7 +626,13 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
           </div>
           <div style={{ width: '100%', height: '16px', borderRadius: '8px', overflow: 'hidden', display: 'flex', backgroundColor: '#e2e8f0', marginBottom: '15px' }}>
              {totalFrequency > 0 && (
-               <><div style={{ width: `${(finalScores.red/totalFrequency)*100}%`, background: '#ef4444' }}></div><div style={{ width: `${(finalScores.white/totalFrequency)*100}%`, background: '#94a3b8' }}></div><div style={{ width: `${(finalScores.blue/totalFrequency)*100}%`, background: '#3b82f6' }}></div><div style={{ width: `${(finalScores.yellow/totalFrequency)*100}%`, background: '#eab308' }}></div><div style={{ width: `${(finalScores.green/totalFrequency)*100}%`, background: '#22c55e' }}></div></>
+               <>
+                 <div style={{ width: `${(finalScores.red/totalFrequency)*100}%`, background: '#C87A7E' }}></div>
+                 <div style={{ width: `${(finalScores.white/totalFrequency)*100}%`, background: '#C4C1BC' }}></div>
+                 <div style={{ width: `${(finalScores.blue/totalFrequency)*100}%`, background: '#829BAC' }}></div>
+                 <div style={{ width: `${(finalScores.yellow/totalFrequency)*100}%`, background: '#D1B475' }}></div>
+                 <div style={{ width: `${(finalScores.green/totalFrequency)*100}%`, background: '#8D9F8C' }}></div>
+               </>
              )}
           </div>
           {summary.reflection && <div style={{ background: '#fff', padding: '10px', borderRadius: '8px', marginBottom: '8px' }}><div style={{ fontSize: '11px', color: '#6a1b9a', fontWeight: 'bold' }}>看見的模式或課題：</div><div style={{ fontSize: '13px', color: '#333' }}>{summary.reflection}</div></div>}
@@ -539,16 +662,57 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
             return (
               <div key={`read-footprint-r${roundNum}`} style={{ marginBottom: '15px', background: '#fafafa', padding: '10px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                 <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#3949ab', marginBottom: '10px' }}>ROUND {roundNum}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {rFootprints.map((r, i) => (
-                    <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '10px', borderRadius: '8px', borderLeft: `4px solid ${cardColors.find(c=>c.id===r.color)?.hex}`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontSize: '11px', color: '#888' }}>足跡 {i+1} | 骰: {r.diceSteps} | 前進: {r.fastForward}</span>
-                        <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#333' }}>{r.colorName?.split(' ')[0]} {r.cardType || '牌卡'} <span style={{color: '#d81b60'}}>當前 KIN {r.currentKin}</span></span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '10px' }}>
+                  {rFootprints.map((r, i) => {
+                    const fColorHex = cardColors.find(c=>c.id===r.color)?.hex || '#ccc';
+                    const kinSealImg = seals[r.currentKin % 20]?.img;
+                    const cardInfo = cardsData.find(c => c[0] === (r.rawInput?.cardId || ''));
+                    const cardImgUrl = getCardIcon(cardInfo ? cardInfo[2] : '');
+                    const cardText = cardInfo ? cardInfo[1] : '';
+
+                    let logColorId;
+                    if (galacticPortals.includes(r.currentKin)) {
+                      logColorId = 'green';
+                    } else {
+                      const logKinRemainder = r.currentKin % 4;
+                      logColorId = logKinRemainder === 1 ? 'red' : logKinRemainder === 2 ? 'white' : logKinRemainder === 3 ? 'blue' : 'yellow';
+                    }
+                    const logKinColor = darkerMorandiColors[logColorId];
+
+                    return (
+                    <div key={r.id} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '8px', background: '#fff', padding: '12px', borderRadius: '8px', borderLeft: `4px solid ${fColorHex}`, boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
+
+                      <span style={{ fontSize: '11px', color: '#888', paddingRight: '60px' }}>足跡 {i+1} | 骰: {r.diceSteps} | 前進: {r.fastForward}</span>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {kinSealImg && <img src={kinSealImg} alt="kin" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />}
+                        <span style={{ fontSize: '14px', fontWeight: '900', color: logKinColor, letterSpacing: '0.5px' }}>KIN {r.currentKin}</span>
                       </div>
-                      <span style={{ fontWeight: 'bold', color: r.score >= 0 ? '#22c55e' : '#ef4444' }}>{r.score >= 0 ? '+' : ''}{r.score}分</span>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {cardImgUrl ? (
+                          <div style={{ flexShrink: 0, width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${fColorHex}`, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                            <img src={cardImgUrl} alt="card" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
+                          </div>
+                        ) : (
+                          <div style={{ flexShrink: 0, width: '12px', height: '12px', borderRadius: '50%', backgroundColor: fColorHex }}></div>
+                        )}
+                        <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#333', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ color: fColorHex }}>#{r.rawInput?.cardId || '未知'}</span>
+                          <span>{r.cardType || '牌卡'}</span>
+                          <span style={{ fontWeight: '900', color: r.score >= 0 ? '#8D9F8C' : '#C87A7E', fontSize: '14px', marginLeft: '2px' }}>
+                            {r.score >= 0 ? '+' : ''}{r.score}
+                          </span>
+                        </span>
+                      </div>
+
+                      {cardText && (
+                        <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5', marginTop: '2px', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', borderLeft: `3px solid ${fColorHex}80` }}>
+                          {cardText}
+                        </div>
+                      )}
                     </div>
-                  ))}
+                  )})}
                 </div>
               </div>
             );

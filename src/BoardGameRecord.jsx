@@ -40,7 +40,7 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
   const isHost = activeGameRoom.hostId === user.uid;
   const isHostPlaying = activeGameRoom.isHostPlaying;
   const amIPlaying = !isHost || isHostPlaying; 
-
+  
   const myData = activeGameRoom.players.find(p => p.uid === user.uid) || {};
 
   const [activeTab, setActiveTab] = useState(amIPlaying ? 'my_game' : 'player_list');
@@ -62,7 +62,7 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
     r3: { startAge: '', startKin: '', yearAge: '', yearKin: '' },
     end: { age: '', kin: '' }
   });
-
+  
   const handleSetupChange = (round, field, value) => {
     setSetup(prev => ({ ...prev, [round]: { ...prev[round], [field]: value } }));
   };
@@ -98,15 +98,8 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
               setNextAction(data.summary.nextAction || '');
             }
           }
-        } catch (error) {
-          console.error('讀取遊戲紀錄失敗:', error);
-          if (error.code === 'permission-denied') {
-            // Permission error - still allow gameplay but show message
-            console.warn('無法同步雲端資料，將使用本地資料');
-          }
-        } finally {
-          setDataLoaded(true);
-        }
+        } catch (error) { console.error("讀取紀錄失敗:", error); }
+        finally { setDataLoaded(true); }
       };
       fetchMyData();
     }
@@ -118,23 +111,22 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
     catch (e) { alert("結束遊戲失敗！"); }
   };
 
+  // 🌟 核心 KIN 運算引擎升級：完美計算每次的 Base = 上一步KIN + 上一步快進
   const calculatedRounds = [];
   const colorScores = { red: 0, white: 0, blue: 0, yellow: 0, green: 0 };
 
   [1, 2, 3].forEach(rNum => {
     const rFootprints = rounds.filter(f => f.roundNum === rNum);
     const startKin = parseInt(setup[`r${rNum}`].startKin, 10) || 0;
-
+    
     rFootprints.forEach((f, i) => {
-      let calcKin = 0;
+      const prev = i > 0 ? calculatedRounds[calculatedRounds.length - 1] : null;
+      const base = prev ? prev.currentKin + (prev.fastForward || 0) : startKin;
       const dSteps = parseInt(f.diceSteps) || 0;
-      if (dSteps === 0 && i > 0) {
-        calcKin = calculatedRounds[calculatedRounds.length - 1].currentKin;
-      } else {
-        const base = i === 0 ? startKin : calculatedRounds[calculatedRounds.length - 1].currentKin + (calculatedRounds[calculatedRounds.length - 1].fastForward || 0);
-        let k = (base + dSteps) % 260;
-        calcKin = k === 0 ? 260 : k;
-      }
+      
+      let k = (base + dSteps) % 260;
+      const calcKin = k === 0 ? 260 : k;
+      
       calculatedRounds.push({ ...f, currentKin: calcKin });
       if (colorScores[f.color] !== undefined) colorScores[f.color] += (f.score || 0);
     });
@@ -150,41 +142,37 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
   const totalFrequency = finalScores.red + finalScores.white + finalScores.blue + finalScores.yellow + finalScores.green;
   const currentStage = frequencyStages.find(s => totalFrequency <= s.max) || frequencyStages[4];
 
+  // 🌟 預覽 KIN 引擎升級：即使沒輸入骰子(0步)，也會先加上一步的「快進」！
   let previewKin = null;
   if (setup[`r${activeRound}`]?.startKin) {
     const startKin = parseInt(setup[`r${activeRound}`].startKin, 10);
     const dSteps = parseInt(diceSteps) || 0;
     const rFootprints = calculatedRounds.filter(r => r.roundNum === activeRound);
     let prevFootprint = editingId ? rFootprints[rFootprints.findIndex(f => f.id === editingId) - 1] : rFootprints[rFootprints.length - 1];
-
-    if (dSteps === 0 && prevFootprint) previewKin = prevFootprint.currentKin; 
-    else {
-       const base = prevFootprint ? prevFootprint.currentKin + (prevFootprint.fastForward || 0) : startKin;
-       let k = (base + dSteps) % 260;
-       previewKin = k === 0 ? 260 : k;
-    }
+    
+    const base = prevFootprint ? prevFootprint.currentKin + (prevFootprint.fastForward || 0) : startKin;
+    let k = (base + dSteps) % 260;
+    previewKin = k === 0 ? 260 : k;
   }
 
-  // 🌟 真・雲端儲存引擎 (開放手動觸發與背景觸發)
   const saveToCloud = async (isManualAction = false) => {
     if (!amIPlaying || !dataLoaded) return;
     try {
       const recordRef = doc(db, 'game_rooms', activeGameRoom.id, 'player_records', user.uid);
       const currentKinValue = calculatedRounds.length > 0 ? calculatedRounds[calculatedRounds.length - 1].currentKin : (setup[`r${activeRound}`]?.startKin || '尚未設定');
-
+      
       await setDoc(recordRef, {
         setup, rounds, 
         summary: { activeRound, currentKin: currentKinValue, totalScore: totalFrequency, hasCalculated, reflection, nextAction }, 
         updatedAt: Date.now()
       }, { merge: true });
-
+      
       if (isManualAction) alert("💾 紀錄與反思已成功封存同步至雲端！\n您可以隨時在「玩家列表」中檢視。");
     } catch (e) {
       if (isManualAction) alert("存檔失敗：" + e.message);
     }
   };
 
-  // 背景自動同步 (移除 ended 限制，讓玩家結算時可以正常儲存反思)
   useEffect(() => {
     if (amIPlaying && dataLoaded) {
       const timeout = setTimeout(() => { saveToCloud(false); }, 800); 
@@ -362,7 +350,7 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
         ) : (
           <div style={{...blockStyle, backgroundColor: '#f3e5f5', border: '1px solid #ce93d8', animation: 'fadeIn 0.5s' }}>
             <h3 style={{ margin: '0 0 15px 0', fontSize: '16px', color: '#6a1b9a', textAlign: 'center' }}>📊 意識頻率結算報告</h3>
-
+            
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '5px', textAlign: 'center', marginBottom: '15px' }}>
                {[ { id: 'red', label: '🔴 紅', hex: '#ef4444' }, { id: 'white', label: '⚪ 白', hex: '#94a3b8' }, { id: 'blue', label: '🔵 藍', hex: '#3b82f6' }, { id: 'yellow', label: '🟡 黃', hex: '#eab308' }, { id: 'green', label: '🟢 綠', hex: '#22c55e' } ].map(c => (
                  <div key={c.id} style={{ background: '#fff', padding: '8px 0', borderRadius: '8px', border: `1px solid ${c.hex}` }}>
@@ -390,7 +378,7 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
                  </>
                )}
             </div>
-
+            
             <div style={{ padding: '12px', backgroundColor: '#fff', borderRadius: '10px', fontSize: '13px', color: '#333', textAlign: 'center', lineHeight: '1.5', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
               {currentStage.desc}
             </div>
@@ -398,11 +386,11 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
             <div style={{ marginTop: '20px' }}>
               <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#6a1b9a' }}>🦋 看見的重複模式或課題</label>
               <textarea rows="3" placeholder="在這次旅程中，我發現..." value={reflection} onChange={(e)=>setReflection(e.target.value)} style={{...inputStyle, resize: 'none', marginBottom: '10px'}} />
-
+              
               <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#6a1b9a' }}>🔥 下一步的突破行動宣告</label>
               <textarea rows="2" placeholder="接下來，我決定..." value={nextAction} onChange={(e)=>setNextAction(e.target.value)} style={{...inputStyle, resize: 'none'}} />
             </div>
-
+            
             {/* 🌟 真正的存檔按鈕：點擊後強制執行 saveToCloud(true) */}
             <button onClick={() => saveToCloud(true)} style={{ width: '100%', padding: '14px', background: '#26a69a', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', marginTop: '15px', fontSize: '15px', boxShadow: '0 4px 10px rgba(38, 166, 154, 0.3)' }}>
               💾 封存戰報與反思
@@ -418,7 +406,6 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
 function PlayerListView({ activeGameRoom }) {
   const [allRecords, setAllRecords] = useState({});
   const [viewingPlayerId, setViewingPlayerId] = useState(null); 
-  const [firestoreError, setFirestoreError] = useState(null);
 
   useEffect(() => {
     const q = query(collection(db, 'game_rooms', activeGameRoom.id, 'player_records'));
@@ -426,10 +413,6 @@ function PlayerListView({ activeGameRoom }) {
       const data = {};
       snap.forEach(doc => { data[doc.id] = doc.data(); });
       setAllRecords(data);
-      setFirestoreError(null);
-    }, (error) => {
-      console.error('Firestore read error:', error);
-      setFirestoreError('無法讀取玩家紀錄。請確認您有適當的權限。');
     });
     return () => unsubscribe();
   }, [activeGameRoom.id]);
@@ -440,32 +423,11 @@ function PlayerListView({ activeGameRoom }) {
     return <ReadOnlyPlayerRecord player={targetPlayer} record={targetRecord} onBack={() => setViewingPlayerId(null)} />;
   }
 
-  if (firestoreError) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        <h3 style={{ color: '#1976d2', margin: '0 0 5px 0', fontSize: '16px', textAlign: 'center' }}>👥 戰況即時監控板</h3>
-        <div style={{ backgroundColor: '#fee2e2', border: '1px solid #ef4444', borderRadius: '8px', padding: '15px', color: '#ef4444' }}>
-          <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>⚠️ 讀取錯誤</div>
-          <div style={{ fontSize: '13px' }}>{firestoreError}</div>
-        </div>
-        <div style={{ color: '#888', fontSize: '13px', textAlign: 'center' }}>
-          <p>您仍可查看下列玩家的基本資訊：</p>
-          {activeGameRoom.players.map(p => (
-            <div key={p.uid} style={{ padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', marginBottom: '8px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontWeight: 'bold', color: '#333' }}>{p.name}</div>
-              <div style={{ fontSize: '12px' }}>KIN {p.kin}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
       <h3 style={{ color: '#1976d2', margin: '0 0 5px 0', fontSize: '16px', textAlign: 'center' }}>👥 戰況即時監控板</h3>
       <p style={{ fontSize: '12px', color: '#888', textAlign: 'center', marginTop: '-5px', marginBottom: '10px' }}>點擊玩家卡片可查看詳細紀錄</p>
-
+      
       {activeGameRoom.players.map(p => {
         const rec = allRecords[p.uid];
         const summary = rec?.summary || { activeRound: 1, currentKin: '未開始', totalScore: 0 };
@@ -473,7 +435,7 @@ function PlayerListView({ activeGameRoom }) {
         const statusBadge = summary.hasCalculated ? <span style={{ fontSize: '10px', background: '#ce93d8', color: '#fff', padding: '2px 6px', borderRadius: '10px' }}>已結算</span> : <span style={{ fontSize: '10px', background: '#22c55e', color: '#fff', padding: '2px 6px', borderRadius: '10px' }}>進行中</span>;
 
         return (
-          <div key={p.uid} onClick={() => setViewingPlayerId(p.uid)} style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '15px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', borderLeft: '4px solid #3b82f6', cursor: 'pointer' }}>
+          <div key={p.uid} onClick={() => setViewingPlayerId(p.uid)} style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '15px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', borderLeft: '4px solid #3b82f6', cursor: 'pointer', transition: 'transform 0.1s' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#333' }}>{p.name} {isHostTag}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{statusBadge}<span style={{ fontSize: '14px', color: '#1976d2' }}>🔍</span></div>
@@ -494,7 +456,7 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
   const setup = record?.setup || { r1: {}, r2: {}, r3: {}, end: {} };
   const rounds = record?.rounds || [];
   const summary = record?.summary || {};
-
+  
   let fullKinName = `KIN ${player.kin || '未知'}`;
   if (player.kin) {
     const kNum = parseInt(player.kin, 10);
@@ -507,18 +469,16 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
 
   const calculatedRounds = [];
   const colorScores = { red: 0, white: 0, blue: 0, yellow: 0, green: 0 };
-
+  
   [1, 2, 3].forEach(rNum => {
     const rFootprints = rounds.filter(f => f.roundNum === rNum);
     const startKin = parseInt(setup[`r${rNum}`]?.startKin, 10) || 0;
     rFootprints.forEach((f, i) => {
-      let calcKin = 0;
+      const prev = i > 0 ? calculatedRounds[calculatedRounds.length - 1] : null;
+      const base = prev ? prev.currentKin + (prev.fastForward || 0) : startKin;
       const dSteps = parseInt(f.diceSteps) || 0;
-      if (dSteps === 0 && i > 0) { calcKin = calculatedRounds[calculatedRounds.length - 1].currentKin; } 
-      else {
-        const base = i === 0 ? startKin : calculatedRounds[calculatedRounds.length - 1].currentKin + (calculatedRounds[calculatedRounds.length - 1].fastForward || 0);
-        let k = (base + dSteps) % 260; calcKin = k === 0 ? 260 : k;
-      }
+      let k = (base + dSteps) % 260;
+      const calcKin = k === 0 ? 260 : k;
       calculatedRounds.push({ ...f, currentKin: calcKin });
       if (colorScores[f.color] !== undefined) colorScores[f.color] += (f.score || 0);
     });

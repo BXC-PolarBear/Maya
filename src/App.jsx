@@ -18,14 +18,19 @@ import { timeMatrix, spaceMatrix, synchronicMatrix } from './Matrix441';
 import BoardGameRecord from './BoardGameRecord';
 import GameLobbyManager from './GameLobbyManager';
 
+// 🌟 修正：優化名字抓取邏輯，優先使用本地儲存的 LINE 名稱
 const getSafeName = (userObj) => {
-  if (!userObj) return "會員";
+  if (!userObj) return "旅人";
+  // 如果有本地存的真實名字，優先使用
+  const localName = localStorage.getItem('line_displayName');
+  if (localName) return localName;
   if (userObj.displayName) return userObj.displayName;
-  if (userObj.email) {
+  // 避免回傳醜醜的虛擬信箱前綴
+  if (userObj.email && !userObj.email.includes('line.bxc.com')) {
     const parts = userObj.email.split('@');
-    return parts.length > 0 ? parts[0] : "會員";
+    return parts.length > 0 ? parts[0] : "旅人";
   }
-  return "會員";
+  return "旅人";
 };
 
 const formatDateString = (ts) => {
@@ -107,7 +112,7 @@ export default function App() {
   const [showBasicConfig, setShowBasicConfig] = useState(true);
   const [showAdvancedData, setShowAdvancedData] = useState(true);
 
-  // 🌟 桌遊與大廳相關狀態
+  // 桌遊與大廳相關狀態
   const [activeGameRoom, setActiveGameRoom] = useState(null);
   const [isGameUnlocked, setIsGameUnlocked] = useState(localStorage.getItem('bxc_game_unlocked') === 'true');
   const [inviteCode, setInviteCode] = useState('');
@@ -140,6 +145,12 @@ export default function App() {
         if (liff.isLoggedIn()) {
           const profile = await liff.getProfile();
           setLineProfile(profile);
+          
+          // 🌟 登入成功時，強制將真實名稱存入本地端，防呆使用
+          if (profile.displayName) {
+            localStorage.setItem('line_displayName', profile.displayName);
+          }
+
           const lineEmail = `${profile.userId}@line.bxc.com`;
           const linePassword = `Liff_${profile.userId}_Secret`; 
           try {
@@ -170,10 +181,19 @@ export default function App() {
         setIsInitializing(false); 
         const savedName = localStorage.getItem(`maya_name_${currentUser.uid}`);
         const savedDate = localStorage.getItem(`maya_date_${currentUser.uid}`);
+        const localLineName = localStorage.getItem('line_displayName');
 
-        if (savedName) setUserName(savedName);
-        else if (currentUser.displayName) setUserName(currentUser.displayName);
-        else if (currentUser.email) setUserName(currentUser.email.split('@')[0]);
+        // 🌟 修正名稱賦值邏輯：絕不允許 UID 或虛擬信箱混入
+        if (savedName && savedName !== "旅人") {
+          setUserName(savedName);
+        } else if (localLineName) {
+          setUserName(localLineName);
+        } else if (currentUser.displayName) {
+          setUserName(currentUser.displayName);
+        } else {
+          setUserName("旅人");
+        }
+
         if (savedDate && savedDate.length > 5) setDate(savedDate);
 
         try {
@@ -181,8 +201,8 @@ export default function App() {
           const userSnap = await getDoc(userRef);
 
           if (!userSnap.exists()) {
-             const safeName = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : "旅人");
-             await setDoc(userRef, { email: currentUser.email || "", displayName: safeName, isAdmin: false, createdAt: Date.now() }, { merge: true });
+             const finalSafeName = localLineName || currentUser.displayName || "旅人";
+             await setDoc(userRef, { email: currentUser.email || "", displayName: finalSafeName, isAdmin: false, createdAt: Date.now() }, { merge: true });
           } else {
              const dbData = userSnap.data();
              const adminStatus = dbData.isAdmin === true || String(dbData.isAdmin).toLowerCase() === 'true';
@@ -209,7 +229,9 @@ export default function App() {
 
   useEffect(() => {
     if (user && !adminViewingRecord) {
-      if (userName.trim() !== '') localStorage.setItem(`maya_name_${user.uid}`, userName);
+      if (userName.trim() !== '' && userName !== "旅人") {
+        localStorage.setItem(`maya_name_${user.uid}`, userName);
+      }
       if (date && date.length > 5) localStorage.setItem(`maya_date_${user.uid}`, date);
     }
   }, [userName, date, user, adminViewingRecord]);
@@ -217,7 +239,7 @@ export default function App() {
   const autoSaveTriggered = useRef(false);
   useEffect(() => {
     if (user && recordsLoaded && savedRecords.length === 0 && !autoSaveTriggered.current) {
-      if (userName && date !== getTodayString()) {
+      if (userName && userName !== "旅人" && date !== getTodayString()) {
         autoSaveTriggered.current = true;
         handleSaveRecord(true); 
       }
@@ -274,7 +296,6 @@ export default function App() {
 
   const handleLineLogin = () => { if (!liff.isLoggedIn()) liff.login(); };
 
-  // 計算星系印記資料
   const kinNumber = calculateKin(date);
   const toneNumber = ((kinNumber - 1) % 13) + 1;
   const bottomToneNumber = 14 - toneNumber;
@@ -378,7 +399,7 @@ export default function App() {
   const fullHiddenSeal = seals[fullHiddenKin % 20] || seals[0];
   const fullHiddenName = `${toneNames[fullHiddenTone - 1]}的${fullHiddenSeal.name}`;
 
-  const isDefaultName = !userName || userName.trim() === '';
+  const isDefaultName = !userName || userName.trim() === '' || userName === '旅人';
   const dateParts = date ? date.split('-') : getTodayString().split('-');
   const formattedDate = dateParts.length === 3 ? `${dateParts[0]}/${parseInt(dateParts[1], 10)}/${parseInt(dateParts[2], 10)}` : '';
 
@@ -449,11 +470,10 @@ export default function App() {
     } catch (error) {}
   };
 
-  // 🌟 核心：為大廳產生「玩家完整資訊」的輔助函式
   const buildPlayerContext = (recordId) => {
     let rec;
     if (recordId === 'current') {
-      rec = { name: userName, date: date, kin: kinNumber };
+      rec = { name: isDefaultName ? '旅人' : userName, date: date, kin: kinNumber };
     } else {
       rec = savedRecords.find(r => r.id === recordId) || { name: userName, date: date, kin: kinNumber };
     }
@@ -519,11 +539,9 @@ export default function App() {
             </div>
           )}
 
-          {/* ... Admin / Cloud Records ... */}
           {showAdminView ? (
             <div style={{ width: '100%', maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <h3 style={{ color: '#1e3a8a', textAlign: 'center' }}>⚙️ 系統管理後台</h3>
-              {/* (Admin Panel 內容保持) */}
               {!viewingUser ? (
                 <>
                   <div style={{ background: '#fff', padding: '15px', borderRadius: '15px', textAlign: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>

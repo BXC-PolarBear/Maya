@@ -12,7 +12,6 @@ import { Scanner } from '@yudiel/react-qr-scanner';
 import { seals } from './mayaEngine';
 import { cardsData } from './cardsData';
 
-// 🌟 牌卡圖示與顏色引擎
 const getCardIcon = (imgStr) => {
   if (!imgStr) return '';
   if (imgStr.startsWith('T')) {
@@ -28,15 +27,15 @@ const getCardIcon = (imgStr) => {
   return '';
 };
 
+// 🎨 全新高質感：莫蘭迪色系 (卡牌圖鑑外框與標籤使用)
 const colorStyles = {
-  '紅': '#ef4444',
-  '白': '#94a3b8', 
-  '藍': '#3b82f6',
-  '黃': '#eab308',
-  '綠': '#22c55e'
+  '紅': '#C87A7E',
+  '白': '#C4C1BC', 
+  '藍': '#829BAC',
+  '黃': '#D1B475',
+  '綠': '#8D9F8C'
 };
 
-// 🌟 獨立的實體虛擬牌卡元件 (讓畫面更乾淨)
 const CardDisplay = ({ card }) => {
   if (!card) return null;
   const [cId, cText, cImg, cColorStr, cType] = card;
@@ -90,8 +89,7 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
   const [myRooms, setMyRooms] = useState([]);
   const [isScanning, setIsScanning] = useState(false);
 
-  // 🌟 圖鑑與抽卡專屬狀態
-  const [dictMode, setDictMode] = useState('search'); // 'search' 或 'random'
+  const [dictMode, setDictMode] = useState('search'); 
   const [searchQuery, setSearchQuery] = useState('');
   const [randomCard, setRandomCard] = useState(null);
 
@@ -100,7 +98,6 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
     : [];
 
   const handleDrawCard = () => {
-    // 每次點擊先清空卡片製造閃爍動畫效果，然後延遲 50ms 抽卡
     setRandomCard(null);
     setTimeout(() => {
       const randomIndex = Math.floor(Math.random() * cardsData.length);
@@ -246,7 +243,6 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
           <button onClick={() => setView('create')} style={{ ...btnStyle, background: '#3949ab', color: '#fff' }}>👑 我要開桌 (當桌長)</button>
           <button onClick={() => setView('join')} style={{ ...btnStyle, background: '#26a69a', color: '#fff' }}>🙋‍♂️ 我要加入 (當成員)</button>
 
-          {/* 🌟 獨立抽卡圖鑑入口 */}
           <button onClick={() => { setView('dictionary'); setDictMode('search'); }} style={{ ...btnStyle, background: '#8b5cf6', color: '#fff', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
             <span>🔍</span> 牌卡圖鑑 & 隨機抽卡 <span>🎲</span>
           </button>
@@ -267,9 +263,6 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
         </div>
       )}
 
-      {/* ========================================= */}
-      {/* 🌟 全新獨立專區：牌卡圖鑑 & 隨機抽卡 */}
-      {/* ========================================= */}
       {view === 'dictionary' && (
         <div style={{ animation: 'fadeIn 0.3s' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
@@ -338,7 +331,6 @@ export default function GameLobbyManager({ user, savedRecords, buildPlayerContex
         </div>
       )}
 
-      {/* 原本的開桌與加入邏輯保留... */}
       {view === 'create' && (
         <div>
           <h3 style={{ fontSize: '16px', color: '#333' }}>開桌設定</h3>

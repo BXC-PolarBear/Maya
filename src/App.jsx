@@ -18,7 +18,6 @@ import { timeMatrix, spaceMatrix, synchronicMatrix } from './Matrix441';
 import BoardGameRecord from './BoardGameRecord';
 import GameLobbyManager from './GameLobbyManager';
 
-// 🌟 修正：拔除本地端干擾，讓管理員名單正確顯示個別使用者的資料庫名稱
 const getSafeName = (userObj) => {
   if (!userObj) return "旅人";
   if (userObj.displayName) return userObj.displayName;
@@ -525,7 +524,7 @@ export default function App() {
           <div style={{ backgroundColor: '#fff', padding: '50px 30px', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', width: '100%', maxWidth: '350px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <img src="/Bxc Balance LOGO.png" alt="LOGO" style={{ width: '120px', marginBottom: '25px' }} />
             <h2 style={{ color: '#d81b60', margin: '0 0 10px 0', letterSpacing: '1px' }}>登入星系矩陣</h2>
-            
+
             <button 
               type="button" 
               onClick={handleLineLogin} 
@@ -709,7 +708,13 @@ export default function App() {
                     <div style={{ gridArea: '1 / 1 / 2 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={wavespellSeal.img} alt="波符" style={{ width: '32px' }} /><span style={labelStyle}>波符：{wavespellSeal.name}</span></div>
                     <div style={{ gridArea: '1 / 2 / 2 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={guideSeal.img} alt="引導" style={{ width: '48px' }} /><span style={labelStyle}>引導：{guideSeal.name}</span></div>
                     <div style={{ gridArea: '2 / 1 / 3 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={challengeSeal.img} alt="挑戰" style={{ width: '48px' }} /><span style={labelStyle}>挑戰：{challengeSeal.name}</span></div>
-                    <div style={{ gridArea: '2 / 2 / 3 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={`/tone_${toneNumber}.png`} alt={`調性 ${toneNumber}`} style={{ height: '12px', marginBottom: '6px', objectFit: 'contain' }} /><img src={mainSeal.img} alt="主印記" style={{ width: '72px' }} /><img src={`/tone_${bottomToneNumber}.png`} alt={`推動調性 ${bottomToneNumber}`} style={{ height: '12px', marginTop: '6px', objectFit: 'contain' }} /><span style={labelStyle}>{mainSeal.name}</span></div>
+                    {/* 🌟 已修正中心圖層：上方調性 -> 主印記圖案 -> 主印記名稱 -> 下方推動調性 */}
+                    <div style={{ gridArea: '2 / 2 / 3 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <img src={`/tone_${toneNumber}.png`} alt={`調性 ${toneNumber}`} style={{ height: '12px', marginBottom: '6px', objectFit: 'contain' }} />
+                      <img src={mainSeal.img} alt="主印記" style={{ width: '72px' }} />
+                      <span style={{...labelStyle, marginTop: '4px', marginBottom: '6px'}}>{mainSeal.name}</span>
+                      <img src={`/tone_${bottomToneNumber}.png`} alt={`推動調性 ${bottomToneNumber}`} style={{ height: '12px', objectFit: 'contain' }} />
+                    </div>
                     <div style={{ gridArea: '2 / 3 / 3 / 4', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={supportSeal.img} alt="支持" style={{ width: '48px' }} /><span style={labelStyle}>支持：{supportSeal.name}</span></div>
                     <div style={{ gridArea: '3 / 2 / 4 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={hiddenSeal.img} alt="隱藏推動" style={{ width: '48px' }} /><span style={labelStyle}>隱藏推動：{hiddenSeal.name}</span></div>
                   </div>
@@ -781,7 +786,13 @@ export default function App() {
                   <div style={{ gridArea: '1 / 1 / 2 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={tWavespellSeal.img} alt="波符" style={{ width: '28px' }} /><span style={{...labelStyle, fontSize: '10px'}}>波符：{tWavespellSeal.name}</span></div>
                   <div style={{ gridArea: '1 / 2 / 2 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={tGuideSeal.img} alt="引導" style={{ width: '42px' }} /><span style={{...labelStyle, fontSize: '10px'}}>引導：{tGuideSeal.name}</span></div>
                   <div style={{ gridArea: '2 / 1 / 3 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={tChallengeSeal.img} alt="挑戰" style={{ width: '42px' }} /><span style={{...labelStyle, fontSize: '10px'}}>挑戰：{tChallengeSeal.name}</span></div>
-                  <div style={{ gridArea: '2 / 2 / 3 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={`/tone_${todayToneNumber}.png`} alt={`調性 ${todayToneNumber}`} style={{ height: '10px', marginBottom: '4px', objectFit: 'contain' }} /><img src={todayMainSeal.img} alt="主印記" style={{ width: '64px' }} /><img src={`/tone_${todayBottomToneNumber}.png`} alt={`推動調性 ${todayBottomToneNumber}`} style={{ height: '10px', marginTop: '4px', objectFit: 'contain' }} /><span style={{...labelStyle, fontSize: '10px'}}>{todayMainSeal.name}</span></div>
+                  {/* 🌟 已修正中心圖層：上方調性 -> 主印記圖案 -> 主印記名稱 -> 下方推動調性 */}
+                  <div style={{ gridArea: '2 / 2 / 3 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <img src={`/tone_${todayToneNumber}.png`} alt={`調性 ${todayToneNumber}`} style={{ height: '10px', marginBottom: '4px', objectFit: 'contain' }} />
+                    <img src={todayMainSeal.img} alt="主印記" style={{ width: '64px' }} />
+                    <span style={{...labelStyle, fontSize: '10px', marginTop: '4px', marginBottom: '4px'}}>{todayMainSeal.name}</span>
+                    <img src={`/tone_${todayBottomToneNumber}.png`} alt={`推動調性 ${todayBottomToneNumber}`} style={{ height: '10px', objectFit: 'contain' }} />
+                  </div>
                   <div style={{ gridArea: '2 / 3 / 3 / 4', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={tSupportSeal.img} alt="支持" style={{ width: '42px' }} /><span style={{...labelStyle, fontSize: '10px'}}>支持：{tSupportSeal.name}</span></div>
                   <div style={{ gridArea: '3 / 2 / 4 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={tHiddenSeal.img} alt="隱藏推動" style={{ width: '42px' }} /><span style={{...labelStyle, fontSize: '10px'}}>隱藏推動：{tHiddenSeal.name}</span></div>
                 </div>

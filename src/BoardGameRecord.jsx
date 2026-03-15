@@ -79,6 +79,80 @@ const frequencyStages = [
   { max: 10000, name: '鼎盛階段 繁盛・成蔭', desc: '能量豐盛，能為他人帶來庇蔭與深遠影響力。' }
 ];
 
+// 🌟 全新的動態立體螺旋能量柱組件
+const FrequencySpiral = ({ scores }) => {
+  const { green, red, white, blue, yellow } = scores;
+  // 總分若超過 1000 依然限制視覺最高在 1000
+  const maxVisual = 1000;
+  const greenH = Math.min(maxVisual, green);
+  const redH = Math.min(maxVisual - greenH, red);
+  const whiteH = Math.min(maxVisual - greenH - redH, white);
+  const blueH = Math.min(maxVisual - greenH - redH - whiteH, blue);
+  const yellowH = Math.min(maxVisual - greenH - redH - whiteH - blueH, yellow);
+
+  // 計算 SVG 內的 Y 座標 (SVG Y=0 在頂端，Y=1000 在底端)
+  const greenY = 1000 - greenH;
+  const redY = greenY - redH;
+  const whiteY = redY - whiteH;
+  const blueY = whiteY - blueH;
+  const yellowY = blueY - yellowH;
+
+  // 繪製完美對稱的螺旋輪廓
+  const spiralPath = "M 100 0 C 105 20, 150 150, 150 200 C 150 250, 110 280, 100 300 C 90 320, 180 350, 180 400 C 180 450, 110 480, 100 500 C 90 520, 190 550, 190 600 C 190 650, 110 680, 100 700 C 90 720, 170 750, 170 800 C 170 850, 110 880, 100 900 C 95 950, 150 980, 180 1000 L 20 1000 C 50 980, 105 950, 100 900 C 90 880, 30 850, 30 800 C 30 750, 110 720, 100 700 C 90 680, 10 650, 10 600 C 10 550, 110 520, 100 500 C 90 480, 20 450, 20 400 C 20 350, 110 320, 100 300 C 90 280, 50 250, 50 200 C 50 150, 95 20, 100 0 Z";
+  
+  // 為確保不同渲染實例不衝突，給予唯一 ID
+  const clipId = `spiral-clip-${Math.random().toString(36).substr(2, 9)}`;
+
+  return (
+    <svg viewBox="0 0 200 1000" style={{ height: '100%', width: '80px', filter: 'drop-shadow(0px 6px 15px rgba(0,0,0,0.06))' }}>
+      <defs>
+        <clipPath id={clipId}>
+          <path d={spiralPath} />
+        </clipPath>
+        <linearGradient id="emptyGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#F5F4F1" />
+          <stop offset="100%" stopColor="#EAE7E1" />
+        </linearGradient>
+      </defs>
+
+      {/* 底部空底色 */}
+      <path d={spiralPath} fill="url(#emptyGrad)" />
+
+      {/* 水平刻度虛線 */}
+      {[100, 200, 300, 400, 500, 600, 700, 800, 900].map(y => (
+        <line key={y} x1="10" y1={y} x2="190" y2={y} stroke="#DCD8D3" strokeWidth="2" strokeDasharray="4 4" opacity="0.7" />
+      ))}
+
+      {/* 動態填入顏色的能量柱 (依照綠紅白藍黃順序) */}
+      <g clipPath={`url(#${clipId})`}>
+        <rect x="0" y={yellowY} width="200" height={yellowH} fill="#D1B475" style={{ transition: 'all 1s ease-in-out' }} />
+        <rect x="0" y={blueY} width="200" height={blueH} fill="#829BAC" style={{ transition: 'all 1s ease-in-out' }} />
+        <rect x="0" y={whiteY} width="200" height={whiteH} fill="#C4C1BC" style={{ transition: 'all 1s ease-in-out' }} />
+        <rect x="0" y={redY} width="200" height={redH} fill="#C87A7E" style={{ transition: 'all 1s ease-in-out' }} />
+        <rect x="0" y={greenY} width="200" height={greenH} fill="#8D9F8C" style={{ transition: 'all 1s ease-in-out' }} />
+      </g>
+
+      {/* 中心脊柱線 */}
+      <line x1="100" y1="0" x2="100" y2="1000" stroke="#999999" strokeWidth="1.5" opacity="0.6" />
+
+      {/* 外部邊框 */}
+      <path d={spiralPath} fill="none" stroke="#829BAC" strokeWidth="2.5" opacity="0.85" />
+      
+      {/* 內部 3D 螺旋裝飾線 */}
+      <path d="M 50 200 Q 100 250 150 200" fill="none" stroke="#6B6B6B" strokeWidth="1" opacity="0.3" />
+      <path d="M 20 400 Q 100 450 180 400" fill="none" stroke="#6B6B6B" strokeWidth="1" opacity="0.3" />
+      <path d="M 10 600 Q 100 650 190 600" fill="none" stroke="#6B6B6B" strokeWidth="1" opacity="0.3" />
+      <path d="M 30 800 Q 100 850 170 800" fill="none" stroke="#6B6B6B" strokeWidth="1" opacity="0.3" />
+
+      <path d="M 50 200 Q 100 150 150 200" fill="none" stroke="#6B6B6B" strokeWidth="1" opacity="0.3" />
+      <path d="M 20 400 Q 100 350 180 400" fill="none" stroke="#6B6B6B" strokeWidth="1" opacity="0.3" />
+      <path d="M 10 600 Q 100 550 190 600" fill="none" stroke="#6B6B6B" strokeWidth="1" opacity="0.3" />
+      <path d="M 30 800 Q 100 750 170 800" fill="none" stroke="#6B6B6B" strokeWidth="1" opacity="0.3" />
+    </svg>
+  );
+};
+
+
 export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
   const isHost = activeGameRoom.hostId === user.uid;
   const amIPlaying = activeGameRoom.players.some(p => p.uid === user.uid);
@@ -495,7 +569,6 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
           <div style={{...blockStyle, backgroundColor: '#EFEBF0', border: '1px solid #DCD8D3', animation: 'fadeIn 0.5s' }}>
             <h3 style={{ margin: '0 0 15px 0', fontSize: '16px', color: '#9B8B9E', textAlign: 'center' }}>📊 意識頻率結算報告</h3>
             
-            {/* 🌟 結算小卡順序調整為「綠紅白藍黃」 */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '5px', textAlign: 'center', marginBottom: '15px' }}>
                {[ { id: 'green', label: '綠', hex: '#8D9F8C' }, { id: 'red', label: '紅', hex: '#C87A7E' }, { id: 'white', label: '白', hex: '#C4C1BC' }, { id: 'blue', label: '藍', hex: '#829BAC' }, { id: 'yellow', label: '黃', hex: '#D1B475' } ].map(c => (
                  <div key={c.id} style={{ background: '#FFFFFF', padding: '8px 0', borderRadius: '8px', border: `1px solid ${c.hex}` }}>
@@ -509,42 +582,39 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
                ))}
             </div>
 
-            {/* 🌟 將橫向進度條改為直立能量柱，由下往上堆疊 */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px', margin: '25px 0' }}>
-               {/* 左側：由下往上的顏色指標 */}
-               <div style={{ display: 'flex', flexDirection: 'column-reverse', justifyContent: 'space-between', height: '200px', fontSize: '12px', fontWeight: 'bold', alignItems: 'center', padding: '5px 0' }}>
+            {/* 🌟 導入全新的動態立體螺旋能量柱組件 */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', margin: '30px 0 20px 0' }}>
+               <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '280px', fontSize: '12px', fontWeight: 'bold', padding: '10px 0' }}>
+                  <span style={{color: '#D1B475'}}>黃</span>
+                  <span style={{color: '#829BAC'}}>藍</span>
+                  <span style={{color: '#C4C1BC'}}>白</span>
+                  <span style={{color: '#C87A7E'}}>紅</span>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
                      <span style={{color: '#8D9F8C', fontSize: '10px'}}>▲</span>
                      <span style={{color: '#8D9F8C'}}>綠</span>
                   </div>
-                  <span style={{color: '#C87A7E'}}>紅</span>
-                  <span style={{color: '#C4C1BC'}}>白</span>
-                  <span style={{color: '#829BAC'}}>藍</span>
-                  <span style={{color: '#D1B475'}}>黃</span>
                </div>
 
-               {/* 中間：直立式能量柱 (column-reverse) */}
-               <div style={{ width: '36px', height: '200px', borderRadius: '18px', overflow: 'hidden', display: 'flex', flexDirection: 'column-reverse', backgroundColor: '#E6E2DC', boxShadow: 'inset 0 4px 8px rgba(0,0,0,0.1)' }}>
-                  {totalFrequency === 0 ? (
-                    <div style={{ height: '100%', background: '#DCD8D3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', fontSize: '11px', writingMode: 'vertical-rl', textOrientation: 'mixed' }}>無頻率</div>
-                  ) : (
-                    <>
-                      <div style={{ height: `${(finalScores.green / totalFrequency) * 100}%`, backgroundColor: '#8D9F8C', transition: 'height 1s ease-in-out' }}></div>
-                      <div style={{ height: `${(finalScores.red / totalFrequency) * 100}%`, backgroundColor: '#C87A7E', transition: 'height 1s ease-in-out' }}></div>
-                      <div style={{ height: `${(finalScores.white / totalFrequency) * 100}%`, backgroundColor: '#C4C1BC', transition: 'height 1s ease-in-out' }}></div>
-                      <div style={{ height: `${(finalScores.blue / totalFrequency) * 100}%`, backgroundColor: '#829BAC', transition: 'height 1s ease-in-out' }}></div>
-                      <div style={{ height: `${(finalScores.yellow / totalFrequency) * 100}%`, backgroundColor: '#D1B475', transition: 'height 1s ease-in-out' }}></div>
-                    </>
-                  )}
+               <div style={{ height: '280px' }}>
+                  <FrequencySpiral scores={finalScores} />
                </div>
 
-               {/* 右側：總頻率與階段說明 */}
-               <div style={{ display: 'flex', flexDirection: 'column', flex: 1, textAlign: 'left' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#9B8B9E', marginBottom: '2px' }}>總意識頻率</div>
-                  <div style={{ fontSize: '36px', fontWeight: '900', color: '#706373', letterSpacing: '1px', marginBottom: '15px' }}>{totalFrequency}</div>
-                  <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#4A4A4A' }}>{currentStage.name.split(' ')[0]}</div>
-                  <div style={{ fontSize: '13px', color: '#829BAC', marginTop: '4px' }}>{currentStage.name.split(' ')[1]}</div>
+               <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '280px', fontSize: '10px', color: '#999999', padding: '10px 0', textAlign: 'left' }}>
+                  <span>1000</span>
+                  <span>800</span>
+                  <span>600</span>
+                  <span>400</span>
+                  <span>200</span>
+                  <span>0</span>
                </div>
+            </div>
+
+            {/* 🌟 總頻率數據移至圖表下方，更加清晰大氣 */}
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#9B8B9E' }}>總意識頻率</div>
+                <div style={{ fontSize: '42px', fontWeight: '900', color: '#706373', letterSpacing: '1px', margin: '5px 0' }}>{totalFrequency}</div>
+                <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#4A4A4A' }}>{currentStage.name.split(' ')[0]}</div>
+                <div style={{ fontSize: '13px', color: '#829BAC', marginTop: '4px' }}>{currentStage.name.split(' ')[1]}</div>
             </div>
             
             <div style={{ padding: '12px', backgroundColor: '#FFFFFF', borderRadius: '10px', fontSize: '13px', color: '#4A4A4A', textAlign: 'center', lineHeight: '1.5', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
@@ -714,39 +784,38 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
             <span>總頻率: {totalFrequency}</span><span>{currentStage.name}</span>
           </div>
           
-          {/* 🌟 唯讀模式也同步修改為直立式能量柱 */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px', margin: '25px 0' }}>
-             <div style={{ display: 'flex', flexDirection: 'column-reverse', justifyContent: 'space-between', height: '200px', fontSize: '12px', fontWeight: 'bold', alignItems: 'center', padding: '5px 0' }}>
+          {/* 🌟 唯讀模式也同步導入立體螺旋組件 */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', margin: '30px 0 20px 0' }}>
+             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '280px', fontSize: '12px', fontWeight: 'bold', padding: '10px 0' }}>
+                <span style={{color: '#D1B475'}}>黃</span>
+                <span style={{color: '#829BAC'}}>藍</span>
+                <span style={{color: '#C4C1BC'}}>白</span>
+                <span style={{color: '#C87A7E'}}>紅</span>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
                    <span style={{color: '#8D9F8C', fontSize: '10px'}}>▲</span>
                    <span style={{color: '#8D9F8C'}}>綠</span>
                 </div>
-                <span style={{color: '#C87A7E'}}>紅</span>
-                <span style={{color: '#C4C1BC'}}>白</span>
-                <span style={{color: '#829BAC'}}>藍</span>
-                <span style={{color: '#D1B475'}}>黃</span>
              </div>
 
-             <div style={{ width: '36px', height: '200px', borderRadius: '18px', overflow: 'hidden', display: 'flex', flexDirection: 'column-reverse', backgroundColor: '#E6E2DC', boxShadow: 'inset 0 4px 8px rgba(0,0,0,0.1)' }}>
-                {totalFrequency === 0 ? (
-                  <div style={{ height: '100%', background: '#DCD8D3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', fontSize: '11px', writingMode: 'vertical-rl', textOrientation: 'mixed' }}>無頻率</div>
-                ) : (
-                  <>
-                    <div style={{ height: `${(finalScores.green / totalFrequency) * 100}%`, backgroundColor: '#8D9F8C', transition: 'height 1s ease-in-out' }}></div>
-                    <div style={{ height: `${(finalScores.red / totalFrequency) * 100}%`, backgroundColor: '#C87A7E', transition: 'height 1s ease-in-out' }}></div>
-                    <div style={{ height: `${(finalScores.white / totalFrequency) * 100}%`, backgroundColor: '#C4C1BC', transition: 'height 1s ease-in-out' }}></div>
-                    <div style={{ height: `${(finalScores.blue / totalFrequency) * 100}%`, backgroundColor: '#829BAC', transition: 'height 1s ease-in-out' }}></div>
-                    <div style={{ height: `${(finalScores.yellow / totalFrequency) * 100}%`, backgroundColor: '#D1B475', transition: 'height 1s ease-in-out' }}></div>
-                  </>
-                )}
+             <div style={{ height: '280px' }}>
+                <FrequencySpiral scores={finalScores} />
              </div>
 
-             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, textAlign: 'left' }}>
-                <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#9B8B9E', marginBottom: '2px' }}>總意識頻率</div>
-                <div style={{ fontSize: '36px', fontWeight: '900', color: '#706373', letterSpacing: '1px', marginBottom: '15px' }}>{totalFrequency}</div>
-                <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#4A4A4A' }}>{currentStage.name.split(' ')[0]}</div>
-                <div style={{ fontSize: '13px', color: '#829BAC', marginTop: '4px' }}>{currentStage.name.split(' ')[1]}</div>
+             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '280px', fontSize: '10px', color: '#999999', padding: '10px 0', textAlign: 'left' }}>
+                <span>1000</span>
+                <span>800</span>
+                <span>600</span>
+                <span>400</span>
+                <span>200</span>
+                <span>0</span>
              </div>
+          </div>
+
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#9B8B9E' }}>總意識頻率</div>
+              <div style={{ fontSize: '42px', fontWeight: '900', color: '#706373', letterSpacing: '1px', margin: '5px 0' }}>{totalFrequency}</div>
+              <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#4A4A4A' }}>{currentStage.name.split(' ')[0]}</div>
+              <div style={{ fontSize: '13px', color: '#829BAC', marginTop: '4px' }}>{currentStage.name.split(' ')[1]}</div>
           </div>
 
           {summary.reflection && <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', marginBottom: '8px' }}><div style={{ fontSize: '11px', color: '#9B8B9E', fontWeight: 'bold' }}>看見的模式或課題：</div><div style={{ fontSize: '13px', color: '#4A4A4A' }}>{summary.reflection}</div></div>}

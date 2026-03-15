@@ -91,7 +91,7 @@ export default function App() {
   const [isInitializing, setIsInitializing] = useState(true); 
   const [isLoginProcessing, setIsLoginProcessing] = useState(false); 
   const [lineProfile, setLineProfile] = useState(null);
-  
+
   const [date, setDate] = useState(getTodayString());
   const [userName, setUserName] = useState(''); 
   const captureRef = useRef(null); 
@@ -120,7 +120,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('query'); 
   const [viewingTarget, setViewingTarget] = useState(null);
   const [selectedRecordId, setSelectedRecordId] = useState('my'); 
-  
+
   const [showBasicConfig, setShowBasicConfig] = useState(true);
   const [showAdvancedData, setShowAdvancedData] = useState(true);
 
@@ -145,30 +145,33 @@ export default function App() {
     else localStorage.removeItem('bxc_admin');
   };
 
+  // 🌟 修正點 1：徹底移除「提早結束(Early Return)」的捷徑，實打實回傳 User 物件
   const performFirebaseLogin = async (profile) => {
     const lineEmail = `${profile.userId}@line.bxc.com`;
     const linePassword = `Liff_${profile.userId}_Secret`; 
-    
-    if (auth.currentUser && auth.currentUser.email === lineEmail) {
-      try {
-        await setDoc(doc(db, "users", auth.currentUser.uid), { displayName: profile.displayName, updatedAt: Date.now() }, { merge: true });
-      } catch(e) {}
-      return;
-    }
 
     try {
+      // 不管有沒有登入過，一律重新 SignIn 喚醒連線並取得最新 Credential
       const cred = await signInWithEmailAndPassword(auth, lineEmail, linePassword);
       await setDoc(doc(db, "users", cred.user.uid), { email: lineEmail, displayName: profile.displayName, updatedAt: Date.now() }, { merge: true });
+      return cred.user; // 明確回傳，供畫面立刻切換
     } catch (error) {
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-login-credentials') {
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-login-credentials' || error.code === 'auth/wrong-password') {
         try {
            const cred = await createUserWithEmailAndPassword(auth, lineEmail, linePassword);
            await setDoc(doc(db, "users", cred.user.uid), { email: lineEmail, displayName: profile.displayName, isAdmin: false, createdAt: Date.now() });
-        } catch (e) {}
+           return cred.user;
+        } catch (e) {
+           console.error(e);
+           throw e;
+        }
+      } else {
+        throw error;
       }
     }
   };
 
+  // 🌟 修正點 2：啟動時也強制使用回傳的 fUser 切換畫面
   useEffect(() => {
     let isMounted = true;
     const fallbackTimer = setTimeout(() => { if (isMounted) setIsInitializing(false); }, 3000);
@@ -180,7 +183,9 @@ export default function App() {
           const profile = await liff.getProfile();
           setLineProfile(profile);
           if (profile.displayName) localStorage.setItem('line_displayName', profile.displayName);
-          await performFirebaseLogin(profile);
+          
+          const fUser = await performFirebaseLogin(profile);
+          if (fUser) setUser(fUser); // 確保一載入成功就切換畫面
         }
       } catch (err) {} finally {
         if (isMounted) setIsInitializing(false);
@@ -193,8 +198,8 @@ export default function App() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
       if (currentUser) {
+        setUser(currentUser); // 雙重保險
         const localLineName = localStorage.getItem('line_displayName');
         const defaultName = localLineName || currentUser.displayName || "旅人";
 
@@ -249,6 +254,7 @@ export default function App() {
         
         setIsInitializing(false);
       } else {
+        setUser(null);
         setSavedRecords([]); setRecordsLoaded(false); updateAdminState(false); setMyProfile(null);
         setIsInitializing(false);
       }
@@ -323,6 +329,7 @@ export default function App() {
     catch (e) { }
   };
 
+  // 🌟 修正點 3：手動點擊登入時，也強制接收回傳值並刷新畫面
   const handleLineLogin = async () => {
     if (isLoginProcessing) return;
     setIsLoginProcessing(true);
@@ -333,10 +340,12 @@ export default function App() {
         const profile = await liff.getProfile();
         setLineProfile(profile);
         if (profile.displayName) localStorage.setItem('line_displayName', profile.displayName);
-        await performFirebaseLogin(profile);
+        
+        const fUser = await performFirebaseLogin(profile);
+        if (fUser) setUser(fUser); // 霸氣切換！拒絕卡頓！
       }
     } catch (err) {
-      alert("登入過程發生異常，請重整網頁試試！");
+      alert("連線星系矩陣時發生異常，請重整網頁或檢查網路！");
     } finally {
       setIsLoginProcessing(false);
     }
@@ -346,7 +355,7 @@ export default function App() {
     if (!profileInputName.trim() || !profileInputDate) return alert("請填寫完整的姓名與生日！");
     const kNum = calculateKin(profileInputDate);
     const newProfile = { name: profileInputName.trim(), date: profileInputDate, kin: kNum };
-    
+
     try {
       await setDoc(doc(db, "users", user.uid), { myProfile: newProfile }, { merge: true });
       setMyProfile(newProfile);
@@ -514,7 +523,7 @@ export default function App() {
 
       let pDailyKin = (targetKin + todayKinNumber) % 260; if (pDailyKin === 0) pDailyKin = 260;
       const pDailyToneNumber = ((pDailyKin - 1) % 13) + 1; const pDailyMainSeal = seals[pDailyKin % 20]; const pDailyToneName = toneNames[pDailyToneNumber - 1];
-      
+
       setDailyFlowInfo({
         kin: pDailyKin,
         toneName: pDailyToneName,
@@ -581,7 +590,7 @@ export default function App() {
 
   return (
     <div style={{ background: 'linear-gradient(135deg, #F5F4F1 0%, #EAE7E1 100%)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'sans-serif' }}>
-      
+
       {showProfileSetup && user && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', boxSizing: 'border-box' }}>
           <div style={{ background: '#FFFFFF', padding: '30px 25px', borderRadius: '24px', width: '100%', maxWidth: '350px', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
@@ -731,7 +740,7 @@ export default function App() {
 
           ) : activeTab === 'query' ? (
              <div style={{ width: '100%', maxWidth: '380px' }}>
-                
+
                 {adminViewingRecord && (
                   <div style={{ width: '100%', maxWidth: '380px', backgroundColor: '#627B8C', color: '#FFFFFF', borderRadius: '12px', padding: '12px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', boxSizing: 'border-box', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -748,7 +757,7 @@ export default function App() {
 
                 {viewingTarget === null && !adminViewingRecord ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                    
+
                     <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F5F4F1', paddingBottom: '10px', marginBottom: '15px' }}>
                         <span style={{ fontWeight: 'bold', color: '#4A4A4A' }}>我的主印記</span>

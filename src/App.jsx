@@ -18,14 +18,11 @@ import { timeMatrix, spaceMatrix, synchronicMatrix } from './Matrix441';
 import BoardGameRecord from './BoardGameRecord';
 import GameLobbyManager from './GameLobbyManager';
 
-// 🌟 修正：優化名字抓取邏輯，優先使用本地儲存的 LINE 名稱
 const getSafeName = (userObj) => {
   if (!userObj) return "旅人";
-  // 如果有本地存的真實名字，優先使用
   const localName = localStorage.getItem('line_displayName');
   if (localName) return localName;
   if (userObj.displayName) return userObj.displayName;
-  // 避免回傳醜醜的虛擬信箱前綴
   if (userObj.email && !userObj.email.includes('line.bxc.com')) {
     const parts = userObj.email.split('@');
     return parts.length > 0 ? parts[0] : "旅人";
@@ -87,6 +84,7 @@ const getTodayString = () => {
 export default function App() {
   const [user, setUser] = useState(null); 
   const [isInitializing, setIsInitializing] = useState(true); 
+  const [isLoginProcessing, setIsLoginProcessing] = useState(false); // 🌟 新增登入處理中狀態
   const [lineProfile, setLineProfile] = useState(null);
   const [date, setDate] = useState(getTodayString());
   const [userName, setUserName] = useState(''); 
@@ -135,6 +133,25 @@ export default function App() {
     else localStorage.removeItem('bxc_admin');
   };
 
+  // 🌟 獨立提取 Firebase 登入引擎 (解決卡頓核心)
+  const performFirebaseLogin = async (profile) => {
+    const lineEmail = `${profile.userId}@line.bxc.com`;
+    const linePassword = `Liff_${profile.userId}_Secret`; 
+    try {
+      const cred = await signInWithEmailAndPassword(auth, lineEmail, linePassword);
+      await setDoc(doc(db, "users", cred.user.uid), { email: lineEmail, displayName: profile.displayName, updatedAt: Date.now() }, { merge: true });
+    } catch (error) {
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-login-credentials') {
+        try {
+           const cred = await createUserWithEmailAndPassword(auth, lineEmail, linePassword);
+           await setDoc(doc(db, "users", cred.user.uid), { email: lineEmail, displayName: profile.displayName, isAdmin: false, createdAt: Date.now() });
+        } catch (e) {
+           console.error("Firebase Create Error:", e);
+        }
+      }
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
     const fallbackTimer = setTimeout(() => { if (isMounted) setIsInitializing(false); }, 3000);
@@ -145,27 +162,14 @@ export default function App() {
         if (liff.isLoggedIn()) {
           const profile = await liff.getProfile();
           setLineProfile(profile);
-          
-          // 🌟 登入成功時，強制將真實名稱存入本地端，防呆使用
           if (profile.displayName) {
             localStorage.setItem('line_displayName', profile.displayName);
           }
-
-          const lineEmail = `${profile.userId}@line.bxc.com`;
-          const linePassword = `Liff_${profile.userId}_Secret`; 
-          try {
-            const cred = await signInWithEmailAndPassword(auth, lineEmail, linePassword);
-            await setDoc(doc(db, "users", cred.user.uid), { email: lineEmail, displayName: profile.displayName, updatedAt: Date.now() }, { merge: true });
-          } catch (error) {
-            if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-login-credentials') {
-              try {
-                 const cred = await createUserWithEmailAndPassword(auth, lineEmail, linePassword);
-                 await setDoc(doc(db, "users", cred.user.uid), { email: lineEmail, displayName: profile.displayName, isAdmin: false, createdAt: Date.now() });
-              } catch (e) {}
-            }
-          }
+          await performFirebaseLogin(profile);
         }
-      } catch (err) {} finally {
+      } catch (err) {
+        console.error("LIFF Init Error:", err);
+      } finally {
         if (isMounted) setIsInitializing(false);
         clearTimeout(fallbackTimer);
       }
@@ -183,7 +187,6 @@ export default function App() {
         const savedDate = localStorage.getItem(`maya_date_${currentUser.uid}`);
         const localLineName = localStorage.getItem('line_displayName');
 
-        // 🌟 修正名稱賦值邏輯：絕不允許 UID 或虛擬信箱混入
         if (savedName && savedName !== "旅人") {
           setUserName(savedName);
         } else if (localLineName) {
@@ -294,7 +297,27 @@ export default function App() {
     catch (e) { }
   };
 
-  const handleLineLogin = () => { if (!liff.isLoggedIn()) liff.login(); };
+  // 🌟 修正假死按鈕：強制喚醒機制
+  const handleLineLogin = async () => {
+    if (isLoginProcessing) return;
+    setIsLoginProcessing(true);
+    try {
+      if (!liff.isLoggedIn()) {
+        liff.login();
+      } else {
+        // 如果 LINE 顯示登入，但 Firebase 卡住了，強制重走 Firebase 登入流程
+        const profile = await liff.getProfile();
+        setLineProfile(profile);
+        if (profile.displayName) localStorage.setItem('line_displayName', profile.displayName);
+        await performFirebaseLogin(profile);
+      }
+    } catch (err) {
+      console.error("Manual Login Error:", err);
+      alert("登入過程發生異常，請重整網頁試試！");
+    } finally {
+      setIsLoginProcessing(false);
+    }
+  };
 
   const kinNumber = calculateKin(date);
   const toneNumber = ((kinNumber - 1) % 13) + 1;
@@ -507,7 +530,28 @@ export default function App() {
           <div style={{ backgroundColor: '#fff', padding: '50px 30px', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', width: '100%', maxWidth: '350px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <img src="/Bxc Balance LOGO.png" alt="LOGO" style={{ width: '120px', marginBottom: '25px' }} />
             <h2 style={{ color: '#d81b60', margin: '0 0 10px 0', letterSpacing: '1px' }}>登入星系矩陣</h2>
-            <button type="button" onClick={handleLineLogin} style={{ width: '100%', padding: '14px', fontSize: '16px', fontWeight: 'bold', color: '#fff', backgroundColor: '#06C755', border: 'none', borderRadius: '12px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(6, 199, 85, 0.3)' }}><span style={{ fontSize: '22px' }}>💬</span>使用 LINE 一鍵登入</button>
+            
+            {/* 🌟 修改過的登入按鈕：增加載入狀態與強制喚醒 */}
+            <button 
+              type="button" 
+              onClick={handleLineLogin} 
+              disabled={isLoginProcessing}
+              style={{ 
+                width: '100%', padding: '14px', fontSize: '16px', fontWeight: 'bold', color: '#fff', 
+                backgroundColor: isLoginProcessing ? '#a5d6a7' : '#06C755', 
+                border: 'none', borderRadius: '12px', cursor: isLoginProcessing ? 'not-allowed' : 'pointer', 
+                display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', 
+                boxShadow: isLoginProcessing ? 'none' : '0 4px 15px rgba(6, 199, 85, 0.3)',
+                transition: 'background-color 0.3s'
+              }}
+            >
+              {isLoginProcessing ? (
+                <><span>🔄</span> 連線星系矩陣中...</>
+              ) : (
+                <><span style={{ fontSize: '22px' }}>💬</span>使用 LINE 一鍵登入</>
+              )}
+            </button>
+
           </div>
         </div>
       ) : (

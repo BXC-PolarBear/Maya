@@ -91,15 +91,13 @@ export default function App() {
   const [isInitializing, setIsInitializing] = useState(true); 
   const [isLoginProcessing, setIsLoginProcessing] = useState(false); 
   const [lineProfile, setLineProfile] = useState(null);
-
+  
   const [date, setDate] = useState(getTodayString());
   const [userName, setUserName] = useState(''); 
   const captureRef = useRef(null); 
   const [previewImage, setPreviewImage] = useState(null);
   const [aiResponse, setAiResponse] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
-
-  // 🌟 記錄 AI 計算出來的今日流日 KIN 資訊
   const [dailyFlowInfo, setDailyFlowInfo] = useState(null);
 
   const [myProfile, setMyProfile] = useState(null);
@@ -122,7 +120,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('query'); 
   const [viewingTarget, setViewingTarget] = useState(null);
   const [selectedRecordId, setSelectedRecordId] = useState('my'); 
-
+  
   const [showBasicConfig, setShowBasicConfig] = useState(true);
   const [showAdvancedData, setShowAdvancedData] = useState(true);
 
@@ -150,6 +148,15 @@ export default function App() {
   const performFirebaseLogin = async (profile) => {
     const lineEmail = `${profile.userId}@line.bxc.com`;
     const linePassword = `Liff_${profile.userId}_Secret`; 
+    
+    // 🌟 防護機制：如果 Firebase 已經用同一個帳號登入過，就不要再重跑登入流程，避免狀態被重洗
+    if (auth.currentUser && auth.currentUser.email === lineEmail) {
+      try {
+        await setDoc(doc(db, "users", auth.currentUser.uid), { displayName: profile.displayName, updatedAt: Date.now() }, { merge: true });
+      } catch(e) {}
+      return;
+    }
+
     try {
       const cred = await signInWithEmailAndPassword(auth, lineEmail, linePassword);
       await setDoc(doc(db, "users", cred.user.uid), { email: lineEmail, displayName: profile.displayName, updatedAt: Date.now() }, { merge: true });
@@ -189,9 +196,21 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        setIsInitializing(false); 
         const localLineName = localStorage.getItem('line_displayName');
         const defaultName = localLineName || currentUser.displayName || "旅人";
+
+        // 🌟 防護機制：0 秒瞬間讀取本地快取，防止「進入太快」造成的重複輸入彈窗
+        const cachedProfileStr = localStorage.getItem(`bxc_my_profile_${currentUser.uid}`);
+        if (cachedProfileStr) {
+          try {
+            const parsedProfile = JSON.parse(cachedProfileStr);
+            setMyProfile(parsedProfile);
+            if (!userName || userName === '旅人') {
+              setUserName(parsedProfile.name);
+              setDate(parsedProfile.date);
+            }
+          } catch(e) {}
+        }
 
         try {
           const userRef = doc(db, "users", currentUser.uid);
@@ -199,20 +218,23 @@ export default function App() {
 
           if (!userSnap.exists()) {
              await setDoc(userRef, { email: currentUser.email || "", displayName: defaultName, isAdmin: false, createdAt: Date.now() }, { merge: true });
-             setProfileInputName(defaultName);
-             setShowProfileSetup(true);
+             if (!cachedProfileStr) {
+               setProfileInputName(defaultName);
+               setShowProfileSetup(true);
+             }
           } else {
              const dbData = userSnap.data();
              const adminStatus = dbData.isAdmin === true || String(dbData.isAdmin).toLowerCase() === 'true';
              updateAdminState(adminStatus);
-
+             
              if (dbData.myProfile) {
                  setMyProfile(dbData.myProfile);
+                 localStorage.setItem(`bxc_my_profile_${currentUser.uid}`, JSON.stringify(dbData.myProfile)); // 同步覆寫快取
                  if (!userName || userName === '旅人') {
                      setUserName(dbData.myProfile.name);
                      setDate(dbData.myProfile.date);
                  }
-             } else {
+             } else if (!cachedProfileStr) {
                  setProfileInputName(defaultName);
                  setShowProfileSetup(true);
              }
@@ -226,8 +248,11 @@ export default function App() {
           setSavedRecords(cloudRecords);
           setRecordsLoaded(true); 
         } catch (error) { setRecordsLoaded(true); }
+        
+        setIsInitializing(false); // 確保所有資料都撈完或快取生效後，才關閉讀取畫面
       } else {
         setSavedRecords([]); setRecordsLoaded(false); updateAdminState(false); setMyProfile(null);
+        setIsInitializing(false);
       }
     });
     return () => unsubscribe();
@@ -323,10 +348,11 @@ export default function App() {
     if (!profileInputName.trim() || !profileInputDate) return alert("請填寫完整的姓名與生日！");
     const kNum = calculateKin(profileInputDate);
     const newProfile = { name: profileInputName.trim(), date: profileInputDate, kin: kNum };
-
+    
     try {
       await setDoc(doc(db, "users", user.uid), { myProfile: newProfile }, { merge: true });
       setMyProfile(newProfile);
+      localStorage.setItem(`bxc_my_profile_${user.uid}`, JSON.stringify(newProfile)); // 🌟 寫入本地快取
       setUserName(newProfile.name);
       setDate(newProfile.date);
       setShowProfileSetup(false);
@@ -474,7 +500,7 @@ export default function App() {
   const handleGenerateGuidance = async () => {
     setIsAiLoading(true); 
     setAiResponse('');
-    setDailyFlowInfo(null); // 清空上次的圖示資料
+    setDailyFlowInfo(null); 
 
     try {
       let targetName, targetKin, targetToneName, targetSealName;
@@ -490,8 +516,7 @@ export default function App() {
 
       let pDailyKin = (targetKin + todayKinNumber) % 260; if (pDailyKin === 0) pDailyKin = 260;
       const pDailyToneNumber = ((pDailyKin - 1) % 13) + 1; const pDailyMainSeal = seals[pDailyKin % 20]; const pDailyToneName = toneNames[pDailyToneNumber - 1];
-
-      // 🌟 將運算出的專屬流日 KIN 存入 state 以供渲染
+      
       setDailyFlowInfo({
         kin: pDailyKin,
         toneName: pDailyToneName,
@@ -558,7 +583,7 @@ export default function App() {
 
   return (
     <div style={{ background: 'linear-gradient(135deg, #fff0f5 0%, #fce4ec 100%)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'sans-serif' }}>
-
+      
       {showProfileSetup && user && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', boxSizing: 'border-box' }}>
           <div style={{ background: '#fff', padding: '30px 25px', borderRadius: '24px', width: '100%', maxWidth: '350px', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
@@ -708,7 +733,7 @@ export default function App() {
 
           ) : activeTab === 'query' ? (
              <div style={{ width: '100%', maxWidth: '380px' }}>
-
+                
                 {adminViewingRecord && (
                   <div style={{ width: '100%', maxWidth: '380px', backgroundColor: '#1e293b', color: '#fff', borderRadius: '12px', padding: '12px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', boxSizing: 'border-box', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -725,7 +750,7 @@ export default function App() {
 
                 {viewingTarget === null && !adminViewingRecord ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-
+                    
                     <div style={{ background: '#fff', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px', marginBottom: '15px' }}>
                         <span style={{ fontWeight: 'bold', color: '#333' }}>我的主印記</span>
@@ -880,8 +905,7 @@ export default function App() {
                         </div>
                         {aiResponse && dailyFlowInfo && (
                           <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f3e5f5', borderRadius: '15px', border: '1px solid #e1bee7', width: '100%', boxSizing: 'border-box' }}>
-
-                            {/* 🌟 專屬流日 KIN 圖騰預覽 */}
+                            
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '15px', paddingBottom: '12px', borderBottom: '1px dashed #ce93d8' }}>
                               <span style={{ fontSize: '13px', color: '#8e24aa', fontWeight: 'bold' }}>你今日流日</span>
                               <img src={dailyFlowInfo.seal.img} alt="kin" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />

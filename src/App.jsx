@@ -50,15 +50,15 @@ const getKinTextInfo = (kin) => {
 const MiniOracleCard = ({ title, kinNum, kinDetails, oracleDetails }) => {
   if (!kinNum || !oracleDetails) {
     return (
-      <div style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '12px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1px solid #f8bbd0', boxShadow: '0 4px 10px rgba(216, 27, 96, 0.05)', minHeight: '150px' }}>
-        <div style={{ fontSize: '11px', color: '#888', marginBottom: '4px', fontWeight: 'bold' }}>{title}</div>
-        <div style={{ fontSize: '12px', color: '#aaa', marginTop: '6px' }}>🔒 待解鎖</div>
+      <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '12px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1px solid #DCD8D3', boxShadow: '0 4px 10px rgba(200, 122, 126, 0.05)', minHeight: '150px' }}>
+        <div style={{ fontSize: '11px', color: '#999999', marginBottom: '4px', fontWeight: 'bold' }}>{title}</div>
+        <div style={{ fontSize: '12px', color: '#B3B3B3', marginTop: '6px' }}>🔒 待解鎖</div>
       </div>
     );
   }
   return (
-    <div style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px solid #f8bbd0', boxShadow: '0 4px 10px rgba(216, 27, 96, 0.05)' }}>
-      <div style={{ fontSize: '11px', color: '#888', marginBottom: '2px', fontWeight: 'bold', letterSpacing: '0.5px' }}>{title} KIN {kinNum}</div>
+    <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px solid #DCD8D3', boxShadow: '0 4px 10px rgba(200, 122, 126, 0.05)' }}>
+      <div style={{ fontSize: '11px', color: '#999999', marginBottom: '2px', fontWeight: 'bold', letterSpacing: '0.5px' }}>{title} KIN {kinNum}</div>
       <div style={{ fontSize: '12px', fontWeight: 'bold', color: kinDetails.color, marginBottom: '12px' }}>{kinDetails.name}</div>
       <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, auto)', gap: '6px', alignItems: 'center', justifyItems: 'center', width: '100%' }}>
         <div style={{ gridArea: '1 / 1 / 2 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={oracleDetails.wavespellSeal.img} alt="波符" style={{ width: '18px', opacity: 0.8 }} /></div>
@@ -72,11 +72,11 @@ const MiniOracleCard = ({ title, kinNum, kinDetails, oracleDetails }) => {
   );
 };
 
-const labelStyle = { fontSize: '11px', color: '#888', marginTop: '4px', fontWeight: 'normal', whiteSpace: 'nowrap' };
-const reportCardStyle = { backgroundColor: '#f8fafd', borderRadius: '16px', padding: '20px', marginTop: '20px', width: '100%', boxSizing: 'border-box', border: '1px solid #e8eaf6' };
-const reportRowStyle = { display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px dashed #e0e0e0', fontSize: '13px', alignItems: 'center' };
-const reportLabelStyle = { color: '#888', width: '80px', textAlign: 'left' };
-const reportValueStyle = { color: '#333', fontWeight: 'bold', flex: 1, textAlign: 'left', paddingLeft: '10px' };
+const labelStyle = { fontSize: '11px', color: '#999999', marginTop: '4px', fontWeight: 'normal', whiteSpace: 'nowrap' };
+const reportCardStyle = { backgroundColor: '#FDFCFB', borderRadius: '16px', padding: '20px', marginTop: '20px', width: '100%', boxSizing: 'border-box', border: '1px solid #E6E2DC' };
+const reportRowStyle = { display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px dashed #DCD8D3', fontSize: '13px', alignItems: 'center' };
+const reportLabelStyle = { color: '#999999', width: '80px', textAlign: 'left' };
+const reportValueStyle = { color: '#4A4A4A', fontWeight: 'bold', flex: 1, textAlign: 'left', paddingLeft: '10px' };
 
 const getTodayString = () => {
   const today = new Date();
@@ -149,7 +149,6 @@ export default function App() {
     const lineEmail = `${profile.userId}@line.bxc.com`;
     const linePassword = `Liff_${profile.userId}_Secret`; 
     
-    // 🌟 防護機制：如果 Firebase 已經用同一個帳號登入過，就不要再重跑登入流程，避免狀態被重洗
     if (auth.currentUser && auth.currentUser.email === lineEmail) {
       try {
         await setDoc(doc(db, "users", auth.currentUser.uid), { displayName: profile.displayName, updatedAt: Date.now() }, { merge: true });
@@ -199,7 +198,6 @@ export default function App() {
         const localLineName = localStorage.getItem('line_displayName');
         const defaultName = localLineName || currentUser.displayName || "旅人";
 
-        // 🌟 防護機制：0 秒瞬間讀取本地快取，防止「進入太快」造成的重複輸入彈窗
         const cachedProfileStr = localStorage.getItem(`bxc_my_profile_${currentUser.uid}`);
         if (cachedProfileStr) {
           try {
@@ -229,7 +227,7 @@ export default function App() {
              
              if (dbData.myProfile) {
                  setMyProfile(dbData.myProfile);
-                 localStorage.setItem(`bxc_my_profile_${currentUser.uid}`, JSON.stringify(dbData.myProfile)); // 同步覆寫快取
+                 localStorage.setItem(`bxc_my_profile_${currentUser.uid}`, JSON.stringify(dbData.myProfile));
                  if (!userName || userName === '旅人') {
                      setUserName(dbData.myProfile.name);
                      setDate(dbData.myProfile.date);
@@ -249,7 +247,7 @@ export default function App() {
           setRecordsLoaded(true); 
         } catch (error) { setRecordsLoaded(true); }
         
-        setIsInitializing(false); // 確保所有資料都撈完或快取生效後，才關閉讀取畫面
+        setIsInitializing(false);
       } else {
         setSavedRecords([]); setRecordsLoaded(false); updateAdminState(false); setMyProfile(null);
         setIsInitializing(false);
@@ -352,7 +350,7 @@ export default function App() {
     try {
       await setDoc(doc(db, "users", user.uid), { myProfile: newProfile }, { merge: true });
       setMyProfile(newProfile);
-      localStorage.setItem(`bxc_my_profile_${user.uid}`, JSON.stringify(newProfile)); // 🌟 寫入本地快取
+      localStorage.setItem(`bxc_my_profile_${user.uid}`, JSON.stringify(newProfile));
       setUserName(newProfile.name);
       setDate(newProfile.date);
       setShowProfileSetup(false);
@@ -434,8 +432,8 @@ export default function App() {
   const goddessKinNum = (kinNumber + guideKinNum + supportKinNum + challengeKinNum + hiddenKinNum) % 260 || 260;
   const goddessKinDetails = getAdvancedKinDetails(goddessKinNum);
 
-  let eqKinNum = null; let eqKinDetails = { name: "🔒 待解鎖", color: "#aaa" };
-  let hk21KinNum = null; let hk21Details = { name: "🔒 待解鎖", color: "#aaa" };
+  let eqKinNum = null; let eqKinDetails = { name: "🔒 待解鎖", color: "#B3B3B3" };
+  let hk21KinNum = null; let hk21Details = { name: "🔒 待解鎖", color: "#B3B3B3" };
 
   if (moonInfo.moon > 0 && timeMatrix && spaceMatrix && synchronicMatrix) {
     const getTelektononCoordinate = (m, d) => {
@@ -574,36 +572,36 @@ export default function App() {
 
   if (isInitializing) {
     return (
-      <div style={{ background: 'linear-gradient(135deg, #fff0f5 0%, #fce4ec 100%)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif' }}>
+      <div style={{ background: 'linear-gradient(135deg, #F5F4F1 0%, #EAE7E1 100%)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif' }}>
         <img src="/Bxc Balance LOGO.png" alt="LOGO" style={{ width: '100px', marginBottom: '25px', opacity: 0.8 }} />
-        <h3 style={{ color: '#d81b60', margin: '0 0 10px 0', letterSpacing: '2px' }}>✨ 宇宙能量讀取中 ✨</h3>
+        <h3 style={{ color: '#C87A7E', margin: '0 0 10px 0', letterSpacing: '2px' }}>✨ 宇宙能量讀取中 ✨</h3>
       </div>
     );
   }
 
   return (
-    <div style={{ background: 'linear-gradient(135deg, #fff0f5 0%, #fce4ec 100%)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'sans-serif' }}>
+    <div style={{ background: 'linear-gradient(135deg, #F5F4F1 0%, #EAE7E1 100%)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'sans-serif' }}>
       
       {showProfileSetup && user && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', boxSizing: 'border-box' }}>
-          <div style={{ background: '#fff', padding: '30px 25px', borderRadius: '24px', width: '100%', maxWidth: '350px', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
-            <h2 style={{ color: '#d81b60', margin: '0 0 10px 0' }}>✨ 歡迎來到星系矩陣 ✨</h2>
-            <p style={{ fontSize: '14px', color: '#666', marginBottom: '25px', lineHeight: '1.5' }}>
+          <div style={{ background: '#FFFFFF', padding: '30px 25px', borderRadius: '24px', width: '100%', maxWidth: '350px', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
+            <h2 style={{ color: '#C87A7E', margin: '0 0 10px 0' }}>✨ 歡迎來到星系矩陣 ✨</h2>
+            <p style={{ fontSize: '14px', color: '#7A7A7A', marginBottom: '25px', lineHeight: '1.5' }}>
               為了讓您在排盤與桌遊中有最完美的體驗，<br/>請先設定您的<strong>「我的主印記」</strong>資料。
             </p>
             <div style={{ textAlign: 'left', marginBottom: '15px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#888' }}>您的姓名或暱稱：</label>
-              <input type="text" value={profileInputName} onChange={(e) => setProfileInputName(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #f8bbd0', marginTop: '5px', boxSizing: 'border-box', fontSize: '15px' }} placeholder="請輸入姓名" />
+              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#999999' }}>您的姓名或暱稱：</label>
+              <input type="text" value={profileInputName} onChange={(e) => setProfileInputName(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #DCD8D3', marginTop: '5px', boxSizing: 'border-box', fontSize: '15px' }} placeholder="請輸入姓名" />
             </div>
             <div style={{ textAlign: 'left', marginBottom: '25px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#888' }}>您的出生年月日：</label>
-              <input type="date" value={profileInputDate} onChange={(e) => setProfileInputDate(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #f8bbd0', marginTop: '5px', boxSizing: 'border-box', fontSize: '15px' }} />
+              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#999999' }}>您的出生年月日：</label>
+              <input type="date" value={profileInputDate} onChange={(e) => setProfileInputDate(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #DCD8D3', marginTop: '5px', boxSizing: 'border-box', fontSize: '15px' }} />
             </div>
-            <button onClick={handleSaveMyProfile} style={{ width: '100%', padding: '14px', backgroundColor: '#d81b60', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(216, 27, 96, 0.3)' }}>
+            <button onClick={handleSaveMyProfile} style={{ width: '100%', padding: '14px', backgroundColor: '#C87A7E', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(200, 122, 126, 0.3)' }}>
               確認儲存
             </button>
             {myProfile && (
-              <button onClick={() => setShowProfileSetup(false)} style={{ background: 'transparent', border: 'none', color: '#888', marginTop: '15px', cursor: 'pointer', fontSize: '13px' }}>先取消，稍後設定</button>
+              <button onClick={() => setShowProfileSetup(false)} style={{ background: 'transparent', border: 'none', color: '#999999', marginTop: '15px', cursor: 'pointer', fontSize: '13px' }}>先取消，稍後設定</button>
             )}
           </div>
         </div>
@@ -611,9 +609,9 @@ export default function App() {
 
       {!user ? (
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', width: '100%' }}>
-          <div style={{ backgroundColor: '#fff', padding: '50px 30px', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', width: '100%', maxWidth: '350px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ backgroundColor: '#FFFFFF', padding: '50px 30px', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', width: '100%', maxWidth: '350px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <img src="/Bxc Balance LOGO.png" alt="LOGO" style={{ width: '120px', marginBottom: '25px' }} />
-            <h2 style={{ color: '#d81b60', margin: '0 0 10px 0', letterSpacing: '1px' }}>登入星系矩陣</h2>
+            <h2 style={{ color: '#C87A7E', margin: '0 0 10px 0', letterSpacing: '1px' }}>登入星系矩陣</h2>
             <button 
               type="button" 
               onClick={handleLineLogin} 
@@ -630,20 +628,20 @@ export default function App() {
           <div style={{ width: '100%', maxWidth: '380px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', padding: '0 5px', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               {lineProfile ? (
-                <><img src={lineProfile.pictureUrl} alt="頭貼" style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid #f8bbd0', objectFit: 'cover' }} /><span style={{ fontSize: '15px', fontWeight: 'bold', color: '#d81b60' }}>Hi, {lineProfile.displayName}</span></>
-              ) : ( <span style={{ fontSize: '14px', color: '#888' }}>Hi, 旅人</span> )}
+                <><img src={lineProfile.pictureUrl} alt="頭貼" style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid #DCD8D3', objectFit: 'cover' }} /><span style={{ fontSize: '15px', fontWeight: 'bold', color: '#C87A7E' }}>Hi, {lineProfile.displayName}</span></>
+              ) : ( <span style={{ fontSize: '14px', color: '#999999' }}>Hi, 旅人</span> )}
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              {showAdminButton && <button onClick={handleAdminClick} style={{ padding: '6px 10px', fontSize: '12px', backgroundColor: showAdminView ? '#1e3a8a' : '#fff', border: '1px solid #1e3a8a', color: showAdminView ? '#fff' : '#1e3a8a', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>{showAdminView ? '✕ 關閉管理' : '⚙️ 管理後台'}</button>}
+              {showAdminButton && <button onClick={handleAdminClick} style={{ padding: '6px 10px', fontSize: '12px', backgroundColor: showAdminView ? '#829BAC' : '#FFFFFF', border: '1px solid #829BAC', color: showAdminView ? '#FFFFFF' : '#829BAC', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>{showAdminView ? '✕ 關閉管理' : '⚙️ 管理後台'}</button>}
             </div>
           </div>
 
           {!showRecordsView && !showAdminView && !adminViewingRecord && (
-            <div style={{ display: 'flex', width: '100%', maxWidth: '380px', marginBottom: '15px', backgroundColor: '#fff', borderRadius: '12px', padding: '5px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-              <button onClick={() => { setActiveTab('query'); setActiveGameRoom(null); setViewingTarget(null); }} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'query' ? '#ffebee' : 'transparent', color: activeTab === 'query' ? '#d81b60' : '#888', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s', fontSize: '14px' }}>
+            <div style={{ display: 'flex', width: '100%', maxWidth: '380px', marginBottom: '15px', backgroundColor: '#FFFFFF', borderRadius: '12px', padding: '5px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+              <button onClick={() => { setActiveTab('query'); setActiveGameRoom(null); setViewingTarget(null); }} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'query' ? '#F2EAEB' : 'transparent', color: activeTab === 'query' ? '#C87A7E' : '#999999', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s', fontSize: '14px' }}>
                 🔍 13月亮曆查詢
               </button>
-              <button onClick={() => { setActiveTab('game'); setViewingTarget(null); }} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'game' ? '#e8f5e9' : 'transparent', color: activeTab === 'game' ? '#2e7d32' : '#888', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s', fontSize: '14px' }}>
+              <button onClick={() => { setActiveTab('game'); setViewingTarget(null); }} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'game' ? '#ECF0EC' : 'transparent', color: activeTab === 'game' ? '#8D9F8C' : '#999999', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s', fontSize: '14px' }}>
                 🎲 共時旅程桌遊
               </button>
             </div>
@@ -651,28 +649,28 @@ export default function App() {
 
           {showAdminView ? (
             <div style={{ width: '100%', maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <h3 style={{ color: '#1e3a8a', textAlign: 'center' }}>⚙️ 系統管理後台</h3>
+              <h3 style={{ color: '#829BAC', textAlign: 'center' }}>⚙️ 系統管理後台</h3>
               {!viewingUser ? (
                 <>
-                  <div style={{ background: '#fff', padding: '15px', borderRadius: '15px', textAlign: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
-                    <div style={{ fontSize: '14px', color: '#888' }}>目前會員總數</div>
-                    <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1e3a8a' }}>{allUsersList.length}</div>
+                  <div style={{ background: '#FFFFFF', padding: '15px', borderRadius: '15px', textAlign: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+                    <div style={{ fontSize: '14px', color: '#999999' }}>目前會員總數</div>
+                    <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#829BAC' }}>{allUsersList.length}</div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
                     {allUsersList.map(u => (
-                      <div key={u.id} style={{ background: '#fff', padding: '15px', borderRadius: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: u.isAdmin ? '4px solid #d81b60' : '4px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                      <div key={u.id} style={{ background: '#FFFFFF', padding: '15px', borderRadius: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: u.isAdmin ? '4px solid #C87A7E' : '4px solid #DCD8D3', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#333' }}>
+                          <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#4A4A4A' }}>
                             {getSafeName(u)}
-                            {u.isAdmin && <span style={{ marginLeft: '6px', fontSize: '10px', background: '#fce4ec', color: '#d81b60', padding: '2px 6px', borderRadius: '10px' }}>管理員</span>}
+                            {u.isAdmin && <span style={{ marginLeft: '6px', fontSize: '10px', background: '#F2EAEB', color: '#C87A7E', padding: '2px 6px', borderRadius: '10px' }}>管理員</span>}
                           </span>
-                          <span style={{ fontSize: '11px', color: '#888' }}>{u.email || '無信箱資料'}</span>
-                          <span style={{ fontSize: '11px', color: '#888', fontWeight: 'bold', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', alignSelf: 'flex-start' }}>加入日期: {formatJoinDate(u)}</span>
+                          <span style={{ fontSize: '11px', color: '#999999' }}>{u.email || '無信箱資料'}</span>
+                          <span style={{ fontSize: '11px', color: '#999999', fontWeight: 'bold', background: '#F5F4F1', padding: '2px 6px', borderRadius: '4px', alignSelf: 'flex-start' }}>加入日期: {formatJoinDate(u)}</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <button onClick={() => loadUserRecords(u)} style={{ background: '#e0f2fe', color: '#0284c7', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>查看紀錄</button>
+                          <button onClick={() => loadUserRecords(u)} style={{ background: '#EBEFF2', color: '#829BAC', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>查看紀錄</button>
                           {u.isAdmin && user && u.id !== user.uid && (
-                            <button onClick={() => removeAdmin(u)} style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer' }}>移除權限</button>
+                            <button onClick={() => removeAdmin(u)} style={{ background: '#F2EAEB', color: '#C87A7E', border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer' }}>移除權限</button>
                           )}
                         </div>
                       </div>
@@ -682,23 +680,23 @@ export default function App() {
               ) : (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <span style={{ fontWeight: 'bold', color: '#1e3a8a', fontSize: '14px' }}>{getSafeName(viewingUser)} 的紀錄</span>
-                    <button onClick={() => setViewingUser(null)} style={{ background: '#f1f5f9', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', color: '#475569' }}>返回名單</button>
+                    <span style={{ fontWeight: 'bold', color: '#829BAC', fontSize: '14px' }}>{getSafeName(viewingUser)} 的紀錄</span>
+                    <button onClick={() => setViewingUser(null)} style={{ background: '#F5F3F0', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', color: '#829BAC' }}>返回名單</button>
                   </div>
                   {viewingUserRecords.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '30px', background: '#fff', borderRadius: '15px', color: '#888' }}>此會員尚未儲存任何紀錄</div>
+                    <div style={{ textAlign: 'center', padding: '30px', background: '#FFFFFF', borderRadius: '15px', color: '#999999' }}>此會員尚未儲存任何紀錄</div>
                   ) : (
                     viewingUserRecords.map(record => (
-                      <div key={record.id} style={{ backgroundColor: '#fff', borderRadius: '15px', padding: '15px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div key={record.id} style={{ backgroundColor: '#FFFFFF', borderRadius: '15px', padding: '15px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#333' }}>{record.name}</span>
-                          <span style={{ fontSize: '12px', color: '#888' }}>{record.date}</span>
-                          <span style={{ fontSize: '12px', color: '#3949ab', fontWeight: 'bold' }}>KIN {record.kin} {record.toneName}的{record.sealName}</span>
+                          <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#4A4A4A' }}>{record.name}</span>
+                          <span style={{ fontSize: '12px', color: '#999999' }}>{record.date}</span>
+                          <span style={{ fontSize: '12px', color: '#829BAC', fontWeight: 'bold' }}>KIN {record.kin} {record.toneName}的{record.sealName}</span>
                         </div>
                         <button onClick={() => {
                           setAdminViewingRecord({ ...record, fromUser: viewingUser });
                           setShowAdminView(false); setActiveTab('query');
-                        }} style={{ padding: '8px 15px', fontSize: '12px', backgroundColor: '#e3f2fd', color: '#1976d2', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>查看排盤</button>
+                        }} style={{ padding: '8px 15px', fontSize: '12px', backgroundColor: '#EBEFF2', color: '#829BAC', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>查看排盤</button>
                       </div>
                     ))
                   )}
@@ -709,22 +707,22 @@ export default function App() {
           ) : showRecordsView ? (
             <div style={{ width: '100%', maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <h3 style={{ color: '#d81b60', margin: '0' }}>☁️ 親友資料庫</h3>
-                <button onClick={() => { setShowRecordsView(false); setViewingTarget('custom'); }} style={{ background: '#f1f5f9', border: 'none', padding: '6px 12px', borderRadius: '8px', fontWeight: 'bold', color: '#64748b', cursor: 'pointer' }}>返回</button>
+                <h3 style={{ color: '#C87A7E', margin: '0' }}>☁️ 親友資料庫</h3>
+                <button onClick={() => { setShowRecordsView(false); setViewingTarget('custom'); }} style={{ background: '#F5F3F0', border: 'none', padding: '6px 12px', borderRadius: '8px', fontWeight: 'bold', color: '#829BAC', cursor: 'pointer' }}>返回</button>
               </div>
               {savedRecords.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px', backgroundColor: '#fff', borderRadius: '15px', color: '#888' }}>尚未儲存任何親友紀錄。<br/>請在查詢親友後按下「儲存至雲端」。</div>
+                <div style={{ textAlign: 'center', padding: '30px', backgroundColor: '#FFFFFF', borderRadius: '15px', color: '#999999' }}>尚未儲存任何親友紀錄。<br/>請在查詢親友後按下「儲存至雲端」。</div>
               ) : (
                 savedRecords.map(record => (
-                  <div key={record.id} style={{ backgroundColor: '#fff', borderRadius: '15px', padding: '15px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div key={record.id} style={{ backgroundColor: '#FFFFFF', borderRadius: '15px', padding: '15px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#333' }}>{record.name}</span>
-                      <span style={{ fontSize: '12px', color: '#888' }}>{record.date}</span>
-                      <span style={{ fontSize: '12px', color: '#3949ab', fontWeight: 'bold' }}>KIN {record.kin} {record.toneName}的{record.sealName}</span>
+                      <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#4A4A4A' }}>{record.name}</span>
+                      <span style={{ fontSize: '12px', color: '#999999' }}>{record.date}</span>
+                      <span style={{ fontSize: '12px', color: '#829BAC', fontWeight: 'bold' }}>KIN {record.kin} {record.toneName}的{record.sealName}</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <button onClick={() => { setUserName(record.name); setDate(record.date); setShowRecordsView(false); setViewingTarget('custom'); }} style={{ padding: '6px 15px', fontSize: '12px', backgroundColor: '#e3f2fd', color: '#1976d2', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>排盤</button>
-                      <button onClick={() => handleDeleteRecord(record.id)} style={{ padding: '6px 15px', fontSize: '12px', backgroundColor: '#ffebee', color: '#d32f2f', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>刪除</button>
+                      <button onClick={() => { setUserName(record.name); setDate(record.date); setShowRecordsView(false); setViewingTarget('custom'); }} style={{ padding: '6px 15px', fontSize: '12px', backgroundColor: '#EBEFF2', color: '#829BAC', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>排盤</button>
+                      <button onClick={() => handleDeleteRecord(record.id)} style={{ padding: '6px 15px', fontSize: '12px', backgroundColor: '#F2EAEB', color: '#C87A7E', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>刪除</button>
                     </div>
                   </div>
                 ))
@@ -735,14 +733,14 @@ export default function App() {
              <div style={{ width: '100%', maxWidth: '380px' }}>
                 
                 {adminViewingRecord && (
-                  <div style={{ width: '100%', maxWidth: '380px', backgroundColor: '#1e293b', color: '#fff', borderRadius: '12px', padding: '12px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', boxSizing: 'border-box', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
+                  <div style={{ width: '100%', maxWidth: '380px', backgroundColor: '#627B8C', color: '#FFFFFF', borderRadius: '12px', padding: '12px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', boxSizing: 'border-box', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>目前正在檢視會員資料</span>
-                      <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#f8bbd0' }}>
+                      <span style={{ fontSize: '12px', color: '#DCD8D3' }}>目前正在檢視會員資料</span>
+                      <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#F2EAEB' }}>
                         {getSafeName(adminViewingRecord.fromUser)}
                       </span>
                     </div>
-                    <button onClick={() => { setAdminViewingRecord(null); setShowAdminView(true); }} style={{ backgroundColor: '#d81b60', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+                    <button onClick={() => { setAdminViewingRecord(null); setShowAdminView(true); }} style={{ backgroundColor: '#C87A7E', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
                       ✕ 返回管理
                     </button>
                   </div>
@@ -751,43 +749,43 @@ export default function App() {
                 {viewingTarget === null && !adminViewingRecord ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     
-                    <div style={{ background: '#fff', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px', marginBottom: '15px' }}>
-                        <span style={{ fontWeight: 'bold', color: '#333' }}>我的主印記</span>
-                        <span style={{ color: '#888', fontSize: '13px' }}>{myProfile ? `${myProfile.name} ${myProfile.date}` : '尚未設定'}</span>
+                    <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F5F4F1', paddingBottom: '10px', marginBottom: '15px' }}>
+                        <span style={{ fontWeight: 'bold', color: '#4A4A4A' }}>我的主印記</span>
+                        <span style={{ color: '#999999', fontSize: '13px' }}>{myProfile ? `${myProfile.name} ${myProfile.date}` : '尚未設定'}</span>
                       </div>
                       {myProfile ? (
                         <>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
                             <img src={seals[myProfile.kin % 20]?.img} alt="kin" style={{ width: '50px', height: '50px', objectFit: 'contain' }} />
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#d81b60', letterSpacing: '0.5px' }}>KIN {myProfile.kin}</span>
-                              <span style={{ fontSize: '14px', color: '#555', fontWeight: 'bold' }}>{getKinTextInfo(myProfile.kin).toneName}的{getKinTextInfo(myProfile.kin).sealName}</span>
+                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#C87A7E', letterSpacing: '0.5px' }}>KIN {myProfile.kin}</span>
+                              <span style={{ fontSize: '14px', color: '#6B6B6B', fontWeight: 'bold' }}>{getKinTextInfo(myProfile.kin).toneName}的{getKinTextInfo(myProfile.kin).sealName}</span>
                             </div>
                           </div>
-                          <button onClick={() => setViewingTarget('my')} style={{ width: '100%', padding: '10px', background: '#fce4ec', color: '#d81b60', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>查看詳細資訊</button>
+                          <button onClick={() => setViewingTarget('my')} style={{ width: '100%', padding: '10px', background: '#F2EAEB', color: '#C87A7E', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>查看詳細資訊</button>
                         </>
                       ) : (
-                        <button onClick={() => { setProfileInputName(getSafeName(user)); setShowProfileSetup(true); }} style={{ width: '100%', padding: '10px', background: '#d81b60', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>設定我的主印記</button>
+                        <button onClick={() => { setProfileInputName(getSafeName(user)); setShowProfileSetup(true); }} style={{ width: '100%', padding: '10px', background: '#C87A7E', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>設定我的主印記</button>
                       )}
                     </div>
 
-                    <div style={{ background: '#fff', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px', marginBottom: '15px' }}>
-                        <span style={{ fontWeight: 'bold', color: '#333' }}>今日宇宙能量</span>
-                        <span style={{ color: '#888', fontSize: '13px' }}>{getTodayString()}</span>
+                    <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F5F4F1', paddingBottom: '10px', marginBottom: '15px' }}>
+                        <span style={{ fontWeight: 'bold', color: '#4A4A4A' }}>今日宇宙能量</span>
+                        <span style={{ color: '#999999', fontSize: '13px' }}>{getTodayString()}</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
                         <img src={todayMainSeal.img} alt="today_kin" style={{ width: '50px', height: '50px', objectFit: 'contain' }} />
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <span style={{ fontSize: '18px', fontWeight: '900', color: '#3949ab', letterSpacing: '0.5px' }}>KIN {todayKinNumber}</span>
-                          <span style={{ fontSize: '14px', color: '#555', fontWeight: 'bold' }}>{todayToneName}的{todayMainSeal.name}</span>
+                          <span style={{ fontSize: '18px', fontWeight: '900', color: '#829BAC', letterSpacing: '0.5px' }}>KIN {todayKinNumber}</span>
+                          <span style={{ fontSize: '14px', color: '#6B6B6B', fontWeight: 'bold' }}>{todayToneName}的{todayMainSeal.name}</span>
                         </div>
                       </div>
-                      <button onClick={() => setViewingTarget('today')} style={{ width: '100%', padding: '10px', background: '#e0e7ff', color: '#3949ab', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>查看詳細資訊</button>
+                      <button onClick={() => setViewingTarget('today')} style={{ width: '100%', padding: '10px', background: '#EBEFF2', color: '#829BAC', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>查看詳細資訊</button>
                     </div>
 
-                    <button onClick={() => setViewingTarget('custom')} style={{ width: '100%', padding: '15px', borderRadius: '16px', background: '#f8fafc', border: '2px dashed #cbd5e1', color: '#475569', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+                    <button onClick={() => setViewingTarget('custom')} style={{ width: '100%', padding: '15px', borderRadius: '16px', background: '#FDFCFB', border: '2px dashed #DCD8D3', color: '#829BAC', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
                        🔍 查詢親友印記
                     </button>
                   </div>
@@ -795,50 +793,50 @@ export default function App() {
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                       {!adminViewingRecord && (
-                         <button onClick={() => setViewingTarget(null)} style={{ background: '#f1f5f9', border: 'none', padding: '6px 12px', borderRadius: '8px', fontWeight: 'bold', color: '#64748b', cursor: 'pointer' }}>🔙 返回首頁</button>
+                         <button onClick={() => setViewingTarget(null)} style={{ background: '#F5F3F0', border: 'none', padding: '6px 12px', borderRadius: '8px', fontWeight: 'bold', color: '#829BAC', cursor: 'pointer' }}>🔙 返回首頁</button>
                       )}
                       {viewingTarget === 'my' && (
-                         <button onClick={() => { setProfileInputName(myProfile?.name || getSafeName(user)); setProfileInputDate(myProfile?.date || getTodayString()); setShowProfileSetup(true); }} style={{ background: '#fff', color: '#64748b', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>⚙️ 修改設定</button>
+                         <button onClick={() => { setProfileInputName(myProfile?.name || getSafeName(user)); setProfileInputDate(myProfile?.date || getTodayString()); setShowProfileSetup(true); }} style={{ background: '#FFFFFF', color: '#829BAC', border: '1px solid #DCD8D3', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>⚙️ 修改設定</button>
                       )}
                       {viewingTarget === 'custom' && (
-                         <button onClick={() => setShowRecordsView(true)} style={{ background: '#e3f2fd', color: '#1976d2', border: 'none', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>📂 親友資料庫</button>
+                         <button onClick={() => setShowRecordsView(true)} style={{ background: '#EBEFF2', color: '#829BAC', border: 'none', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>📂 親友資料庫</button>
                       )}
                     </div>
 
                     {viewingTarget === 'custom' && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px' }}>
                         <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
-                          <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="親友姓名" style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', minWidth: '0' }} />
-                          <input type="date" value={date} onChange={(e) => { if(e.target.value) setDate(e.target.value); }} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', minWidth: '0' }} />
+                          <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="親友姓名" style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #DCD8D3', outline: 'none', boxSizing: 'border-box', minWidth: '0' }} />
+                          <input type="date" value={date} onChange={(e) => { if(e.target.value) setDate(e.target.value); }} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #DCD8D3', outline: 'none', boxSizing: 'border-box', minWidth: '0' }} />
                         </div>
-                        <button onClick={() => handleSaveRecord(false)} style={{ width: '100%', padding: '10px', fontSize: '13px', fontWeight: 'bold', color: '#fff', backgroundColor: '#26a69a', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(38, 166, 154, 0.3)' }}>💾 儲存至雲端資料庫</button>
+                        <button onClick={() => handleSaveRecord(false)} style={{ width: '100%', padding: '10px', fontSize: '13px', fontWeight: 'bold', color: '#fff', backgroundColor: '#8D9F8C', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(141, 159, 140, 0.3)' }}>💾 儲存至雲端資料庫</button>
                       </div>
                     )}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                      <button onClick={downloadScreenshot} style={{ padding: '8px 15px', fontSize: '12px', fontWeight: 'bold', color: '#fff', backgroundColor: '#ec407a', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(236, 64, 122, 0.3)' }}>📸 另存圖卡</button>
+                      <button onClick={downloadScreenshot} style={{ padding: '8px 15px', fontSize: '12px', fontWeight: 'bold', color: '#fff', backgroundColor: '#C87A7E', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(200, 122, 126, 0.3)' }}>📸 另存圖卡</button>
                       <div style={{ display: 'flex', gap: '10px' }}>
-                        <label style={{ fontSize: '11px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}><input type="checkbox" checked={showBasicConfig} onChange={() => setShowBasicConfig(!showBasicConfig)} style={{ accentColor: '#d81b60' }} />基礎</label>
-                        <label style={{ fontSize: '11px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}><input type="checkbox" checked={showAdvancedData} onChange={() => setShowAdvancedData(!showAdvancedData)} style={{ accentColor: '#d81b60' }} />高階</label>
+                        <label style={{ fontSize: '11px', color: '#999999', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}><input type="checkbox" checked={showBasicConfig} onChange={() => setShowBasicConfig(!showBasicConfig)} style={{ accentColor: '#C87A7E' }} />基礎</label>
+                        <label style={{ fontSize: '11px', color: '#999999', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}><input type="checkbox" checked={showAdvancedData} onChange={() => setShowAdvancedData(!showAdvancedData)} style={{ accentColor: '#C87A7E' }} />高階</label>
                       </div>
                     </div>
 
-                    <div ref={captureRef} style={{ backgroundColor: '#ffffff', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', width: '100%', maxWidth: '380px', padding: '25px 15px 15px 15px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div ref={captureRef} style={{ backgroundColor: '#FFFFFF', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', width: '100%', maxWidth: '380px', padding: '25px 15px 15px 15px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                       <div style={{ textAlign: 'center', marginTop: '5px', marginBottom: '25px' }}>
-                        <div style={{ fontSize: '16px', color: '#f06292', letterSpacing: '2px', marginBottom: '8px' }}>✨ 星系矩陣 ✨</div>
-                        <div style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>
+                        <div style={{ fontSize: '16px', color: '#C87A7E', letterSpacing: '2px', marginBottom: '8px' }}>✨ 星系矩陣 ✨</div>
+                        <div style={{ fontSize: '14px', color: '#7A7A7A', marginBottom: '4px' }}>
                           {isDefaultName ? '此日期的主印記' : `${calcName}的主印記`} {formattedDate}
                         </div>
-                        <div style={{ fontSize: '26px', fontWeight: '800', color: '#3949ab', marginBottom: '8px' }}>KIN {kinNumber}</div>
-                        <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#5c6bc0', marginBottom: '12px' }}>
+                        <div style={{ fontSize: '26px', fontWeight: '800', color: '#829BAC', marginBottom: '8px' }}>KIN {kinNumber}</div>
+                        <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#829BAC', marginBottom: '12px' }}>
                           {currentToneName}的{mainSeal.name}
                         </div>
-                        <div style={{ backgroundColor: '#fcf3e3', color: '#b98f48', padding: '6px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold', display: 'inline-block' }}>
+                        <div style={{ backgroundColor: '#FBF8F1', color: '#D1B475', padding: '6px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold', display: 'inline-block' }}>
                           {wavespellSeal.name}波符
                         </div>
                       </div>
 
-                      <div style={{ position: 'relative', border: '2px solid #e8eaf6', borderRadius: '20px', padding: '25px', backgroundColor: '#fafbff', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, auto)', gap: '15px', alignItems: 'center', justifyItems: 'center', width: '100%', boxSizing: 'border-box' }}>
+                      <div style={{ position: 'relative', border: '2px solid #E6E2DC', borderRadius: '20px', padding: '25px', backgroundColor: '#FDFCFB', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, auto)', gap: '15px', alignItems: 'center', justifyItems: 'center', width: '100%', boxSizing: 'border-box' }}>
                         <div style={{ gridArea: '1 / 1 / 2 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={wavespellSeal.img} alt="波符" style={{ width: '32px' }} /><span style={labelStyle}>波符：{wavespellSeal.name}</span></div>
                         <div style={{ gridArea: '1 / 2 / 2 / 3', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={guideSeal.img} alt="引導" style={{ width: '48px' }} /><span style={labelStyle}>引導：{guideSeal.name}</span></div>
                         <div style={{ gridArea: '2 / 1 / 3 / 2', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><img src={challengeSeal.img} alt="挑戰" style={{ width: '48px' }} /><span style={labelStyle}>挑戰：{challengeSeal.name}</span></div>
@@ -854,8 +852,8 @@ export default function App() {
 
                       {showBasicConfig && (
                         <div style={reportCardStyle}>
-                          <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#3949ab', marginBottom: '15px', textAlign: 'center', letterSpacing: '1px' }}>基礎能量配置</div>
-                          <div style={reportRowStyle}><div style={reportLabelStyle}>13月亮曆</div><div style={{ ...reportValueStyle, color: '#3949ab' }}>{moonDateDisplay}</div></div>
+                          <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#829BAC', marginBottom: '15px', textAlign: 'center', letterSpacing: '1px' }}>基礎能量配置</div>
+                          <div style={reportRowStyle}><div style={reportLabelStyle}>13月亮曆</div><div style={{ ...reportValueStyle, color: '#829BAC' }}>{moonDateDisplay}</div></div>
                           <div style={reportRowStyle}><div style={reportLabelStyle}>所屬城堡</div><div style={{ ...reportValueStyle, color: castleColor }}>⬤ {castleName}</div></div>
                           <div style={reportRowStyle}><div style={reportLabelStyle}>地球家族</div><div style={reportValueStyle}>{earthFamilyName}</div></div>
                           <div style={reportRowStyle}><div style={reportLabelStyle}>引導</div><div style={{...reportValueStyle, color: getSealColor(guideIndex)}}>{guideSeal.name}</div></div>
@@ -866,8 +864,8 @@ export default function App() {
                       )}
 
                       {showAdvancedData && (
-                        <div style={{...reportCardStyle, backgroundColor: '#fff0f5', borderColor: '#f8bbd0', padding: '20px 15px'}}>
-                          <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#d81b60', marginBottom: '15px', textAlign: 'center', letterSpacing: '1px' }}>高階星際數據</div>
+                        <div style={{...reportCardStyle, backgroundColor: '#FDFCFB', borderColor: '#E6E2DC', padding: '20px 15px'}}>
+                          <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#C87A7E', marginBottom: '15px', textAlign: 'center', letterSpacing: '1px' }}>高階星際數據</div>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', width: '100%' }}>
                             <MiniOracleCard title="PSI 記憶" kinNum={psiKinNum} kinDetails={getAdvancedKinDetails(psiKinNum)} oracleDetails={getOracleDetails(psiKinNum)} />
                             <MiniOracleCard title="女神印記" kinNum={goddessKinNum} kinDetails={goddessKinDetails} oracleDetails={getOracleDetails(goddessKinNum)} />
@@ -883,14 +881,14 @@ export default function App() {
                     </div>
 
                     {viewingTarget === 'today' && (
-                      <div style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', marginTop: '20px' }}>
-                        <h3 style={{ margin: '0 0 15px 0', color: '#d81b60', fontSize: '16px', textAlign: 'center', fontWeight: 'bold', letterSpacing: '1px' }}>✨ 今日流日分析 (AI測試版) ✨</h3>
-                        <p style={{ fontSize: '12px', color: '#888', marginBottom: '10px', textAlign: 'center' }}>選擇要計算的對象，結合今日能量取得專屬引導。</p>
+                      <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', marginTop: '20px' }}>
+                        <h3 style={{ margin: '0 0 15px 0', color: '#C87A7E', fontSize: '16px', textAlign: 'center', fontWeight: 'bold', letterSpacing: '1px' }}>✨ 今日流日分析 (AI測試版) ✨</h3>
+                        <p style={{ fontSize: '12px', color: '#999999', marginBottom: '10px', textAlign: 'center' }}>選擇要計算的對象，結合今日能量取得專屬引導。</p>
                         <div style={{ display: 'flex', gap: '10px', width: '100%', alignItems: 'center' }}>
                           <select
                             value={selectedRecordId}
                             onChange={(e) => setSelectedRecordId(e.target.value)}
-                            style={{ flex: 2, padding: '12px 10px', borderRadius: '8px', border: '1px solid #ce93d8', outline: 'none', backgroundColor: '#fafafa', fontSize: '14px', color: '#333' }}
+                            style={{ flex: 2, padding: '12px 10px', borderRadius: '8px', border: '1px solid #DCD8D3', outline: 'none', backgroundColor: '#FDFCFB', fontSize: '14px', color: '#4A4A4A' }}
                           >
                             {myProfile && <option value="my">我的主印記 ({myProfile.name})</option>}
                             {savedRecords.length > 0 && (
@@ -899,21 +897,21 @@ export default function App() {
                               </optgroup>
                             )}
                           </select>
-                          <button onClick={handleGenerateGuidance} disabled={isAiLoading} style={{ flex: 1, padding: '12px 5px', fontSize: '14px', fontWeight: 'bold', color: '#fff', backgroundColor: '#ab47bc', border: 'none', borderRadius: '8px', cursor: isAiLoading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 10px rgba(171, 71, 188, 0.3)' }}>
+                          <button onClick={handleGenerateGuidance} disabled={isAiLoading} style={{ flex: 1, padding: '12px 5px', fontSize: '14px', fontWeight: 'bold', color: '#fff', backgroundColor: '#9B8B9E', border: 'none', borderRadius: '8px', cursor: isAiLoading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 10px rgba(155, 139, 158, 0.3)' }}>
                             {isAiLoading ? '解析中...' : '開始分析'}
                           </button>
                         </div>
                         {aiResponse && dailyFlowInfo && (
-                          <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f3e5f5', borderRadius: '15px', border: '1px solid #e1bee7', width: '100%', boxSizing: 'border-box' }}>
+                          <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#EFEBF0', borderRadius: '15px', border: '1px solid #DCD8D3', width: '100%', boxSizing: 'border-box' }}>
                             
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '15px', paddingBottom: '12px', borderBottom: '1px dashed #ce93d8' }}>
-                              <span style={{ fontSize: '13px', color: '#8e24aa', fontWeight: 'bold' }}>你今日流日</span>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '15px', paddingBottom: '12px', borderBottom: '1px dashed #DCD8D3' }}>
+                              <span style={{ fontSize: '13px', color: '#9B8B9E', fontWeight: 'bold' }}>你今日流日</span>
                               <img src={dailyFlowInfo.seal.img} alt="kin" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-                              <span style={{ fontSize: '14px', fontWeight: '900', color: '#d81b60' }}>KIN {dailyFlowInfo.kin} {dailyFlowInfo.toneName}的{dailyFlowInfo.seal.name}</span>
+                              <span style={{ fontSize: '14px', fontWeight: '900', color: '#C87A7E' }}>KIN {dailyFlowInfo.kin} {dailyFlowInfo.toneName}的{dailyFlowInfo.seal.name}</span>
                             </div>
 
-                            <h4 style={{ color: '#8e24aa', margin: '0 0 8px 0', fontSize: '14px', textAlign: 'center' }}>✨ 專屬宇宙導航</h4>
-                            <p style={{ color: '#4a148c', fontSize: '14px', lineHeight: '1.7', margin: 0, textAlign: 'justify', whiteSpace: 'pre-line' }}>{aiResponse}</p>
+                            <h4 style={{ color: '#9B8B9E', margin: '0 0 8px 0', fontSize: '14px', textAlign: 'center' }}>✨ 專屬宇宙導航</h4>
+                            <p style={{ color: '#706373', fontSize: '14px', lineHeight: '1.7', margin: 0, textAlign: 'justify', whiteSpace: 'pre-line' }}>{aiResponse}</p>
                           </div>
                         )}
                       </div>
@@ -924,10 +922,10 @@ export default function App() {
           ) : activeTab === 'game' ? (
             <>
               {!isGameUnlocked ? (
-                <div style={{ width: '100%', maxWidth: '380px', backgroundColor: '#fff', borderRadius: '16px', padding: '30px 20px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
-                  <h2 style={{ color: '#d81b60', marginTop: 0 }}>🔒 封閉測試中</h2>
-                  <input type="password" placeholder="請輸入邀請碼" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ce93d8', marginBottom: '15px', textAlign: 'center', fontSize: '18px', letterSpacing: '3px' }} />
-                  <button onClick={() => { if (inviteCode === '095') { setIsGameUnlocked(true); localStorage.setItem('bxc_game_unlocked', 'true'); } else { alert('❌ 邀請碼錯誤！'); setInviteCode(''); } }} style={{ width: '100%', padding: '14px', background: '#d81b60', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>確認解鎖</button>
+                <div style={{ width: '100%', maxWidth: '380px', backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '30px 20px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
+                  <h2 style={{ color: '#C87A7E', marginTop: 0 }}>🔒 封閉測試中</h2>
+                  <input type="password" placeholder="請輸入邀請碼" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #DCD8D3', marginBottom: '15px', textAlign: 'center', fontSize: '18px', letterSpacing: '3px', outline: 'none' }} />
+                  <button onClick={() => { if (inviteCode === '095') { setIsGameUnlocked(true); localStorage.setItem('bxc_game_unlocked', 'true'); } else { alert('❌ 邀請碼錯誤！'); setInviteCode(''); } }} style={{ width: '100%', padding: '14px', background: '#C87A7E', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>確認解鎖</button>
                 </div>
               ) : !activeGameRoom ? (
                 <GameLobbyManager 
@@ -953,7 +951,7 @@ export default function App() {
             <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', boxSizing: 'border-box' }}>
               <p style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold', marginBottom: '20px', letterSpacing: '1px' }}>📱 請長按下方圖片即可儲存</p>
               <img src={previewImage} alt="專屬圖卡預覽" style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '15px', boxShadow: '0 4px 25px rgba(0,0,0,0.5)' }} />
-              <button onClick={() => setPreviewImage(null)} style={{ marginTop: '25px', padding: '12px 35px', fontSize: '16px', borderRadius: '30px', border: 'none', backgroundColor: '#fff', color: '#d81b60', fontWeight: 'bold', cursor: 'pointer' }}>✕ 關閉預覽</button>
+              <button onClick={() => setPreviewImage(null)} style={{ marginTop: '25px', padding: '12px 35px', fontSize: '16px', borderRadius: '30px', border: 'none', backgroundColor: '#fff', color: '#C87A7E', fontWeight: 'bold', cursor: 'pointer' }}>✕ 關閉預覽</button>
             </div>
           )}
         </div>

@@ -134,7 +134,16 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
           const snap = await getDoc(doc(db, 'game_rooms', activeGameRoom.id, 'player_records', user.uid));
           if (snap.exists()) {
             const data = snap.data();
-            if (data.setup) setSetup(data.setup);
+            
+            // 🌟 防呆：確保舊資料載入時，就算沒有 end，也會補上預設結構，不被蓋掉
+            if (data.setup) {
+              setSetup({
+                r1: data.setup.r1 || { startAge: '', startKin: '', yearAge: '', yearKin: '' },
+                r2: data.setup.r2 || { startAge: '', startKin: '', yearAge: '', yearKin: '' },
+                r3: data.setup.r3 || { startAge: '', startKin: '', yearAge: '', yearKin: '' },
+                end: data.setup.end || { age: '', kin: '' }
+              });
+            }
             if (data.rounds) setRounds(data.rounds);
             if (data.summary) {
               setActiveRound(data.summary.activeRound || 1);
@@ -315,22 +324,22 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
           {[1, 2, 3].map(r => (
             <div key={`r${r}`} style={{ display: 'flex', gap: '6px', marginBottom: '8px', alignItems: 'center' }}>
               <div style={{ width: '40px', flexShrink: 0, textAlign: 'left', fontSize: '12px', fontWeight: 'bold', color: '#C87A7E' }}>R {r}</div>
-              <input type="text" value={setup[`r${r}`].startAge} onChange={(e)=>handleSetupChange(`r${r}`, 'startAge', e.target.value)} style={{...compactInput, flex: 1}} placeholder="Age" />
-              <input type="number" value={setup[`r${r}`].startKin} onChange={(e)=>handleSetupChange(`r${r}`, 'startKin', e.target.value)} style={{...compactInput, flex: 1}} placeholder="KIN" />
+              <input type="text" value={setup[`r${r}`]?.startAge || ''} onChange={(e)=>handleSetupChange(`r${r}`, 'startAge', e.target.value)} style={{...compactInput, flex: 1}} placeholder="Age" />
+              <input type="number" value={setup[`r${r}`]?.startKin || ''} onChange={(e)=>handleSetupChange(`r${r}`, 'startKin', e.target.value)} style={{...compactInput, flex: 1}} placeholder="KIN" />
               <div style={{ width: '8px', flexShrink: 0, textAlign: 'center', color: '#DCD8D3', fontSize: '11px' }}>|</div>
-              <input type="text" value={setup[`r${r}`].yearAge} onChange={(e)=>handleSetupChange(`r${r}`, 'yearAge', e.target.value)} style={{...compactInput, flex: 1}} placeholder="Age" />
-              <input type="number" value={setup[`r${r}`].yearKin} onChange={(e)=>handleSetupChange(`r${r}`, 'yearKin', e.target.value)} style={{...compactInput, flex: 1}} placeholder="KIN" />
+              <input type="text" value={setup[`r${r}`]?.yearAge || ''} onChange={(e)=>handleSetupChange(`r${r}`, 'yearAge', e.target.value)} style={{...compactInput, flex: 1}} placeholder="Age" />
+              <input type="number" value={setup[`r${r}`]?.yearKin || ''} onChange={(e)=>handleSetupChange(`r${r}`, 'yearKin', e.target.value)} style={{...compactInput, flex: 1}} placeholder="KIN" />
             </div>
           ))}
+          {/* 🌟 確保 END 輸入區塊穩定顯示與綁定 */}
           <div style={{ display: 'flex', gap: '6px', marginTop: '6px', paddingTop: '8px', borderTop: '1px dashed #E6E2DC', alignItems: 'center' }}>
             <div style={{ width: '40px', flexShrink: 0, textAlign: 'left', fontSize: '12px', fontWeight: 'bold', color: '#C87A7E' }}>END</div>
-            <input type="text" value={setup.end.age} onChange={(e)=>handleSetupChange('end', 'age', e.target.value)} style={{...compactInput, flex: 1}} placeholder="Age" />
-            <input type="number" value={setup.end.kin} onChange={(e)=>handleSetupChange('end', 'kin', e.target.value)} style={{...compactInput, flex: 1}} placeholder="KIN" />
+            <input type="text" value={setup.end?.age || ''} onChange={(e)=>handleSetupChange('end', 'age', e.target.value)} style={{...compactInput, flex: 1}} placeholder="Age" />
+            <input type="number" value={setup.end?.kin || ''} onChange={(e)=>handleSetupChange('end', 'kin', e.target.value)} style={{...compactInput, flex: 1}} placeholder="KIN" />
             <div style={{ width: '8px', flexShrink: 0 }}></div><div style={{ flex: 1 }}></div><div style={{ flex: 1 }}></div>
           </div>
         </div>
 
-        {/* 🌟 修正點：移除多餘的外層隱藏，確保互動模式第一回合按鈕必定出現！ */}
         <div style={blockStyle}>
           <div style={{ fontSize: '15px', color: '#4A4A4A', fontWeight: 'bold', marginBottom: '10px' }}>🐾 旅程足跡</div>
           
@@ -403,7 +412,6 @@ export default function BoardGameRecord({ user, activeGameRoom, onBack }) {
                   </div>
                 )}
                 
-                {/* 🌟 不論有沒有足跡，這個新增按鈕區塊都會出現 */}
                 {activeRound === roundNum && activeGameRoom.status !== 'ended' && !hasCalculated && (
                   <div style={{ marginTop: '10px' }}>
                     {!isAddingRound ? (
@@ -713,6 +721,13 @@ function ReadOnlyPlayerRecord({ player, record, onBack }) {
             <div style={readOnlyCell}>{setup[`r${r}`]?.startAge || '-'}</div><div style={readOnlyCell}>{setup[`r${r}`]?.startKin || '-'}</div><div style={{ width: '8px', flexShrink: 0, textAlign: 'center', color: '#DCD8D3', fontSize: '11px' }}>|</div><div style={readOnlyCell}>{setup[`r${r}`]?.yearAge || '-'}</div><div style={readOnlyCell}>{setup[`r${r}`]?.yearKin || '-'}</div>
           </div>
         ))}
+        {/* 🌟 唯讀模式也補上 END 顯示區塊 */}
+        <div style={{ display: 'flex', gap: '6px', marginTop: '6px', paddingTop: '8px', borderTop: '1px dashed #E6E2DC', alignItems: 'center' }}>
+          <div style={{ width: '40px', flexShrink: 0, textAlign: 'left', fontSize: '12px', fontWeight: 'bold', color: '#C87A7E' }}>END</div>
+          <div style={readOnlyCell}>{setup.end?.age || '-'}</div>
+          <div style={readOnlyCell}>{setup.end?.kin || '-'}</div>
+          <div style={{ width: '8px', flexShrink: 0 }}></div><div style={{ flex: 1 }}></div><div style={{ flex: 1 }}></div>
+        </div>
       </div>
 
       <div style={blockStyle}>
